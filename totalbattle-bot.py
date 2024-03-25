@@ -235,6 +235,8 @@ def ocrFixGiftContentLoad():
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     next(csvReader)
                     for row in csvReader:
+                        if len(row) == 0:
+                            continue
                         tableOcrFixGiftContent.append(row)
     #print(tableOcrFixGiftContent)
 
@@ -257,6 +259,8 @@ def ocrFixGiftFromLoad():
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     next(csvReader)
                     for row in csvReader:
+                        if len(row) == 0:
+                            continue
                         tableOcrFixGiftFrom.append(row)
     #print(tableOcrFixGiftFrom)
 
@@ -279,6 +283,8 @@ def ocrFixGiftNameLoad():
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     next(csvReader)
                     for row in csvReader:
+                        if len(row) == 0:
+                            continue
                         tableOcrFixGiftName.append(row)
     #print(tableOcrFixGiftName)
 
@@ -301,6 +307,8 @@ def ocrFixGiftSourceLoad():
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     next(csvReader)
                     for row in csvReader:
+                        if len(row) == 0:
+                            continue
                         tableOcrFixGiftSource.append(row)
     #print(tableOcrFixGiftSource)
 
@@ -323,6 +331,8 @@ def giftScoreLoad():
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     next(csvReader)
                     for row in csvReader:
+                        if len(row) == 0:
+                            continue
                         tableGiftScore.append(row)
     #print(tableGiftScore)
 
@@ -345,6 +355,8 @@ def playerListLoad():
             csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
             next(csvReader)
             for row in csvReader:
+                if len(row) == 0:
+                    continue
                 tablePlayerList.append(row)
     #print(tablePlayerList)
                         
@@ -470,8 +482,8 @@ def main(page: Page):
                 #---
                 clickX()
                 #print("ClickX: "+str(int(posXMouse+posXMouseDelta))+" Y:"+str(int(posYMouse+posYMouseDelta)))
-                time.sleep(300/1000)
-                pyautogui.move(50, 50, 300/1000)
+                time.sleep(25/1000)
+                pyautogui.move(50, 50, 25/1000)
                 # ---                     
                 if count >= countLN:
                     break
@@ -566,6 +578,8 @@ def main(page: Page):
                 with open(filename, newline='') as csvFile:
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     for row in csvReader:
+                        if len(row) == 0:
+                            continue
                         giftsTable.append(row)
         #print(giftsTable)        
         ocrFixGiftContentLoad()
@@ -579,6 +593,8 @@ def main(page: Page):
         giftsTableFinal=[]
         giftsTableFinal.append(["Date","Player","Name","Source","Content","Status","Score"])
         for line in giftsTable:
+            if len(line)==0:
+                continue
             giftFrom = ocrFixGiftFrom(line[1])
             giftName = ocrFixGiftName(line[2])
             giftSource = ocrFixGiftSource(line[3])
@@ -595,7 +611,7 @@ def main(page: Page):
         filename="./report/"+reportDate+"-chest-info.csv"
         with open(filename, 'w', newline='') as csvFile:
                     csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-                    for row in giftsTableFinal:
+                    for row in giftsTableFinal:                        
                         csvWriter.writerow(row)
         
         # ---
@@ -630,6 +646,7 @@ def main(page: Page):
                 playerInfoTable.append([playerStats[player][0],playerStats[player][1],playerStats[player][2]])
                 playerStats[player][3]=True
             else:
+                playerInfoTable.append([player,0,0])
                 playerNoGifts.append([player])
 
         for player in playerStats:
