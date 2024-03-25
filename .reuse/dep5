@@ -1,0 +1,57 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: TotalBattle bot
+Upstream-Contact: Grigore Stefan <g_stefan@yahoo.com>
+Source: https://github.com/g-stefan/totalbattle.bot
+License: MIT
+
+Files: .github/*
+Copyright: 2024 Grigore Stefan <g_stefan@yahoo.com>
+License: Unlicense
+
+Files: .github/CODE_OF_CONDUCT.md
+Copyright: 2014 Coraline Ada Ehmke <https://where.coraline.codes/>
+License: CC-BY-4.0
+
+Files: .gitignore
+Copyright: 2024 Grigore Stefan <g_stefan@yahoo.com>
+License: Unlicense
+
+Files: .clang-format
+Copyright: 2024 Grigore Stefan <g_stefan@yahoo.com>
+License: Unlicense
+
+Files: .vscode/*
+Copyright: 2024 Grigore Stefan <g_stefan@yahoo.com>
+License: Unlicense
+
+Files: README.md
+Copyright: 2016-2024 Grigore Stefan <g_stefan@yahoo.com>
+License: MIT
+
+Files: config/*
+Copyright: 2024 Grigore Stefan <g_stefan@yahoo.com>
+License: Unlicense
+
+Files: images/*
+Copyright: 2024 SCOREWARRIOR LIMITED All rights reserved
+License: LicenseRef-FairUse
+
+Files: report/*
+Copyright: 2024 Grigore Stefan <g_stefan@yahoo.com>
+License: Unlicense
+
+Files: repository/*
+Copyright: 2024 Grigore Stefan <g_stefan@yahoo.com>
+License: Unlicense
+
+Files: docs/*
+Copyright: 2024 Grigore Stefan <g_stefan@yahoo.com>
+License: Unlicense
+
+Files: run-bot.cmd
+Copyright: 2024 Grigore Stefan <g_stefan@yahoo.com>
+License: Unlicense
+
+Files: totalbattle-bot.py
+Copyright: 2024 Grigore Stefan <g_stefan@yahoo.com>
+License: Apache-2.0
