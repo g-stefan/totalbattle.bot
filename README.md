@@ -45,7 +45,8 @@ Full tesseract-ocr
 
 ## License
 
-Copyright (c) 2024 Grigore Stefan <g_stefan@yahoo.com.hpp>
+Copyright (c) 2024 Grigore Stefan <g_stefan@yahoo.com>
+
 Licensed under the [Apache License 2.0](LICENSE) license.
 
 ## Disclaimer
