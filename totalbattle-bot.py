@@ -143,7 +143,7 @@ def getGiftScreenshot():
 
 def saveScreenshot(info):
     global screenShotRGB
-    cv.imwrite("screenshot-"+info+".png",screenShotRGB)
+    cv.imwrite(info+"-screenshot.png",screenShotRGB)
 
 def clickX():
     global posXMouse,posYMouse,posXMouseDelta,posYMouseDelta
@@ -373,6 +373,30 @@ def playerListSave():
 def sortSecond(val):    
     return val[1]
 # ---
+tableGiftIgnore=[]
+
+def giftIgnoreLoad():
+    global tableGiftIgnore
+    tableGiftIgnore=[]
+    filename="./config/gift-ignore.csv"
+    if os.path.isfile(filename):
+                with open(filename, newline='') as csvFile:
+                    csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
+                    next(csvReader)
+                    for row in csvReader:
+                        if len(row) == 0:
+                            continue
+                        tableGiftIgnore.append(row)
+    #print(tableGiftIgnore)
+
+def giftIgnore(value):
+    global tableGiftIgnore
+    for item in tableGiftIgnore:
+        if item[0].lower() == value.lower():
+            return True
+    return False
+
+# ---
 
 def main(page: Page):
     global stopProcessing,processingDone,threadStarted,screenIs4K
@@ -457,9 +481,18 @@ def main(page: Page):
                         stopProcessing=True
                         break
                 
-                #saveScreenshot("gift")                
-                giftName = getGiftName()
+                dateNow = datetime.now()
+                giftDate = dateNow.strftime("%Y-%m-%d %H:%M:%S")
+                dateDay = dateNow.strftime("%Y-%m-%d")
+
+                #saveScreenshot("gift") 
                 giftFrom = getGiftFrom()
+                if not giftFrom:
+                    saveScreenshot(dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))
+                    status.value = "OCR Error"
+                    page.update()
+                    break
+                giftName = getGiftName()                
                 giftSource = getGiftSource()
                 giftContains = "unknown"
                 giftStatus = "Ok"
@@ -468,9 +501,7 @@ def main(page: Page):
                     giftStatus = "Deleted"
                 #print("Gift Name: "+giftName)
                 #print("Gift From: "+giftFrom)
-                #print("Gift Source: "+giftSource)
-                giftDate = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                dateDay = datetime.now().strftime("%Y-%m-%d")
+                #print("Gift Source: "+giftSource)                                
                 fileName = "./repository/"+dateDay+"-chest-info.csv"
                 outFile = open(fileName, "a")
                 outFile.write("\""+giftDate+"\",\""+giftFrom+"\",\""+giftName+"\",\""+giftSource+"\",\""+giftContains+"\",\""+giftStatus+"\"\n")
@@ -588,6 +619,7 @@ def main(page: Page):
         ocrFixGiftSourceLoad()
         giftScoreLoad()
         playerListLoad()
+        giftIgnoreLoad()
 
         playerStats={}        
         giftsTableFinal=[]
@@ -600,12 +632,17 @@ def main(page: Page):
             giftSource = ocrFixGiftSource(line[3])
             giftContains = ocrFixGiftContent(line[4])
             giftScore = getGiftScore(giftSource)
+
+            giftsTableFinal.append([line[0],giftFrom,giftName,giftSource,giftContains,line[5],giftScore])
+            if giftIgnore(giftName):
+               continue
+
             if not giftFrom in playerStats:
-                playerStats[giftFrom]=["",0,0,False]
+                playerStats[giftFrom]=["",0,0,False]            
+            
             playerStats[giftFrom][0]=giftFrom
             playerStats[giftFrom][1]+=giftScore
-            playerStats[giftFrom][2]+=1
-            giftsTableFinal.append([line[0],giftFrom,giftName,giftSource,giftContains,line[5],giftScore])
+            playerStats[giftFrom][2]+=1            
 
         reportDate=datetime.now().strftime("%Y-%m-%d")
         filename="./report/"+reportDate+"-chest-info.csv"
