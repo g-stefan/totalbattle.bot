@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 #
-# Version 1.0.0 2024-03-25
+# Version 1.1.0 2024-03-27
 #
 
 import flet
@@ -488,7 +488,7 @@ def main(page: Page):
                 #saveScreenshot("gift") 
                 giftFrom = getGiftFrom()
                 if not giftFrom:
-                    saveScreenshot(dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))
+                    saveScreenshot("./errors/"+dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))
                     status.value = "OCR Error"
                     page.update()
                     break
