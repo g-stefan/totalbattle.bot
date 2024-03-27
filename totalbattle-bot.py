@@ -36,6 +36,7 @@ windowClanTitle02 = cv.imread("images/window-clan-title-02.png", cv.IMREAD_GRAYS
 screenIs4K = False
 screenShotRGB = None
 screenShotGray = None
+cropImage = None
 # ---
 topX=0
 topY=0
@@ -145,6 +146,10 @@ def saveScreenshot(info):
     global screenShotRGB
     cv.imwrite(info+"-screenshot.png",screenShotRGB)
 
+def saveCropImage(info):
+    global cropImage
+    cv.imwrite(info+"-crop.png",cropImage)
+
 def clickX():
     global posXMouse,posYMouse,posXMouseDelta,posYMouseDelta
     pyautogui.moveTo(int(posXMouse+posXMouseDelta),int(posYMouse+posYMouseDelta),0.2)
@@ -155,6 +160,7 @@ def clickAt(x,y):
     pyautogui.click(int(x),int(y))
 
 def ocr(image,x,y,lnX,lnY):
+    global cropImage
     cropImage = image[y:y+lnY, x:x+lnX]
     text = pytesseract.image_to_string(cropImage, config="--psm 12 --oem 1")
     return text
@@ -487,11 +493,12 @@ def main(page: Page):
 
                 #saveScreenshot("gift") 
                 giftFrom = getGiftFrom()
-                if not giftFrom:
+                if giftFrom == "":
                     saveScreenshot("./errors/"+dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))
-                    status.value = "OCR Error"
+                    saveCropImage("./errors/"+dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))
+                    status.value = "OCR Error - Gift From"
                     page.update()
-                    break
+                    return
                 giftName = getGiftName()                
                 giftSource = getGiftSource()
                 giftContains = "unknown"
