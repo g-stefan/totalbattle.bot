@@ -85,7 +85,6 @@ def getScreenshot():
         screenShotRGB = cv.resize(screenShotRGB, (1920, int(resizeY)), fx=0, fy=0, interpolation = cv.INTER_AREA)
     screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
 
-
 def getScreenshotX(x,y,lnX,lnY):
     global screenShotRGB,screenShotGray
     screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot(region=(int(x),int(y),int(lnX),int(lnY)))),cv.COLOR_RGB2BGR)

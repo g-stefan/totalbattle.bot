@@ -39,6 +39,7 @@ python -m pip install clipboard
 python -m pip install pytesseract
 python -m pip install opencv-python
 python -m pip install pyautogui
+python -m pip install easyocr
 ```
 
 Full tesseract-ocr
