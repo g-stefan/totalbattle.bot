@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 #
-# Version 1.1.0 2024-03-27
+# Version 1.1.0 2024-03-28
 #
 
 import flet
@@ -15,28 +15,29 @@ import cv2 as cv
 import numpy as np
 import pyautogui
 import time
-import pytesseract
 from datetime import datetime, timedelta
 import csv
 import os.path
+import pytesseract
+import easyocr
 
-buttonClan01 = cv.imread("images/button-clan-01.png", cv.IMREAD_GRAYSCALE)
-buttonClan02 = cv.imread("images/button-clan-02.png", cv.IMREAD_GRAYSCALE)
-buttonDelete01 = cv.imread("images/button-delete-01.png", cv.IMREAD_GRAYSCALE)
-buttonDelete02 = cv.imread("images/button-delete-02.png", cv.IMREAD_GRAYSCALE)
-buttonGiftsActive01 = cv.imread("images/button-gifts-active-01.png", cv.IMREAD_GRAYSCALE)
-buttonGiftsActive02 = cv.imread("images/button-gifts-active-02.png", cv.IMREAD_GRAYSCALE)
-buttonGiftsInactive01 = cv.imread("images/button-gifts-inactive-01.png", cv.IMREAD_GRAYSCALE)
-buttonGiftsInactive02 = cv.imread("images/button-gifts-inactive-02.png", cv.IMREAD_GRAYSCALE)
-buttonOpen01 = cv.imread("images/button-open-01.png", cv.IMREAD_GRAYSCALE)
-buttonOpen02 = cv.imread("images/button-open-02.png", cv.IMREAD_GRAYSCALE)
-windowClanTitle01 = cv.imread("images/window-clan-title-01.png", cv.IMREAD_GRAYSCALE)
-windowClanTitle02 = cv.imread("images/window-clan-title-02.png", cv.IMREAD_GRAYSCALE)
 # ---
-screenIs4K = False
+ocrProcessor = easyocr.Reader(["en","de","fr"])
+useOnyEasyOCR = False
+ocrMemory = {}
+# ---
+buttonClanImage = cv.imread("images/button-clan.png", cv.IMREAD_GRAYSCALE)
+buttonDeleteImage = cv.imread("images/button-delete.png", cv.IMREAD_GRAYSCALE)
+buttonGiftsActiveImage = cv.imread("images/button-gifts-active.png", cv.IMREAD_GRAYSCALE)
+buttonGiftsInactiveImage = cv.imread("images/button-gifts-inactive.png", cv.IMREAD_GRAYSCALE)
+buttonOpenImage = cv.imread("images/button-open.png", cv.IMREAD_GRAYSCALE)
+windowClanTitleImage = cv.imread("images/window-clan-title.png", cv.IMREAD_GRAYSCALE)
+
+# ---
 screenShotRGB = None
 screenShotGray = None
 cropImage = None
+screenShotDelta = 1
 # ---
 topX=0
 topY=0
@@ -75,9 +76,15 @@ stopProcessing=False
 processingDone=False
 
 def getScreenshot():
-    global screenShotRGB,screenShotGray
-    screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot()),cv.COLOR_RGB2BGR)
+    global screenShotRGB,screenShotGray,screenShotDelta
+    screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot()),cv.COLOR_RGB2BGR)    
+    lnX = screenShotRGB.shape[1]
+    screenShotDelta = lnX/1920
+    resizeY = (screenShotRGB.shape[0]*1920)/lnX
+    if not lnX == 1920:
+        screenShotRGB = cv.resize(screenShotRGB, (1920, int(resizeY)), fx=0, fy=0, interpolation = cv.INTER_AREA)
     screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
+
 
 def getScreenshotX(x,y,lnX,lnY):
     global screenShotRGB,screenShotGray
@@ -151,23 +158,50 @@ def saveCropImage(info):
     cv.imwrite(info+"-crop.png",cropImage)
 
 def clickX():
-    global posXMouse,posYMouse,posXMouseDelta,posYMouseDelta
-    pyautogui.moveTo(int(posXMouse+posXMouseDelta),int(posYMouse+posYMouseDelta),0.2)
-    pyautogui.click(int(posXMouse+posXMouseDelta),int(posYMouse+posYMouseDelta))
+    global posXMouse,posYMouse,posXMouseDelta,posYMouseDelta,screenShotDelta
+    pyautogui.moveTo(int((posXMouse+posXMouseDelta)*screenShotDelta),int((posYMouse+posYMouseDelta)*screenShotDelta),0.2)
+    pyautogui.click(int((posXMouse+posXMouseDelta)*screenShotDelta),int((posYMouse+posYMouseDelta)*screenShotDelta))
 
 def clickAt(x,y):
-    pyautogui.moveTo(int(posXMouse+posXMouseDelta),int(posYMouse+posYMouseDelta),0.2)
+    global screenShotDelta
+    pyautogui.moveTo(int((posXMouse+posXMouseDelta)*screenShotDelta),int((posYMouse+posYMouseDelta)*screenShotDelta),0.2)
     pyautogui.click(int(x),int(y))
 
+def ocrEasyOCR(processedImage):
+    result = ocrProcessor.readtext(processedImage)
+    for (bbox, text, prob) in result:
+        if prob > 0.8:
+            return text
+    return ""
+
+#
+# Using secondary OCR (EasyOCR) as an expert (takes longer that faster primary OCR (tesseract) )
+#
 def ocr(image,x,y,lnX,lnY):
-    global cropImage
+    global cropImage,ocrProcessor,useOnyEasyOCR,ocrMemory
     cropImage = image[y:y+lnY, x:x+lnX]
-    cropImage = cv.resize(cropImage, (cropImage.shape[1]*2, cropImage.shape[0]*2), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    cropImage = cv.resize(cropImage, (cropImage.shape[1]*4, cropImage.shape[0]*4), fx=0, fy=0, interpolation = cv.INTER_AREA)
     normImage = np.zeros((cropImage.shape[0], cropImage.shape[1]))
     cropImage = cv.normalize(cropImage, normImage, 0, 255, cv.NORM_MINMAX)
     cropImage = cv.threshold(cropImage, 100, 255, cv.THRESH_BINARY)[1]
-    cropImage = cv.GaussianBlur(cropImage, (1, 1), 0)
-    text = pytesseract.image_to_string(cropImage, config="--psm 12 --oem 1")
+    cropImage = cv.medianBlur(cropImage, 3)
+
+    text = ""
+    if not useOnyEasyOCR:        
+        text = pytesseract.image_to_string(cropImage, config="--psm 12 --oem 1")
+        text = text.strip()
+        if not text == "":
+            if text in ocrMemory:
+                return ocrMemory[text]
+            mem = ocrEasyOCR(cropImage)
+            if not mem == "":
+                ocrMemory[text]=mem
+                return mem
+            return text
+
+    if text == "":
+        text = ocrEasyOCR(cropImage)
+            
     return text
 
 def getGiftName():
@@ -198,41 +232,29 @@ def getGiftContains():
     text = text.strip()
     return text
 
-def matchImageWindowClanTitle():
-    global screenIs4K
-    global windowClanTitle01,windowClanTitle02
-    if screenIs4K: return matchImage(windowClanTitle02)
-    return matchImage(windowClanTitle01)
+def matchImageWindowClanTitle():    
+    global windowClanTitleImage
+    return matchImage(windowClanTitleImage)
 
-def matchImageButtonClan():
-    global screenIs4K
-    global buttonClan01,buttonClan02
-    if screenIs4K: return matchImage(buttonClan02)
-    return matchImage(buttonClan01)
+def matchImageButtonClan():    
+    global buttonClanImage
+    return matchImage(buttonClanImage)
 
-def matchImageButtonGiftsActive():
-    global screenIs4K
-    global buttonGiftsActive01,buttonGiftsActive02
-    if screenIs4K: return matchImage(buttonGiftsActive02)
-    return matchImage(buttonGiftsActive01)
+def matchImageButtonGiftsActive():    
+    global buttonGiftsActiveImage
+    return matchImage(buttonGiftsActiveImage)
     
-def matchImageButtonGiftsInactive():
-    global screenIs4K
-    global buttonGiftsInactive01,buttonGiftsInactive02
-    if screenIs4K: return matchImage(buttonGiftsInactive02)
-    return matchImage(buttonGiftsInactive01)
+def matchImageButtonGiftsInactive():    
+    global buttonGiftsInactiveImage
+    return matchImage(buttonGiftsInactiveImage)
 
-def matchImageButtonDelete():
-    global screenIs4K
-    global buttonDelete01,buttonDelete02
-    if screenIs4K: return matchImage(buttonDelete02)
-    return matchImage(buttonDelete01)
+def matchImageButtonDelete():    
+    global buttonDeleteImage    
+    return matchImage(buttonDeleteImage)
 
-def matchImageButtonOpen():
-    global screenIs4K
-    global buttonOpen01,buttonOpen02
-    if screenIs4K: return matchImage(buttonOpen02)
-    return matchImage(buttonOpen01)
+def matchImageButtonOpen():    
+    global buttonOpenImage    
+    return matchImage(buttonOpenImage)
 
 # ---
 tableOcrFixGiftContent=[]
@@ -242,7 +264,7 @@ def ocrFixGiftContentLoad():
     tableOcrFixGiftContent=[]
     filename="./config/ocr-fix-gift-content.csv"
     if os.path.isfile(filename):
-                with open(filename, newline='') as csvFile:
+                with open(filename, newline='', encoding='utf8') as csvFile:
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     next(csvReader)
                     for row in csvReader:
@@ -266,7 +288,7 @@ def ocrFixGiftFromLoad():
     tableOcrFixGiftFrom=[]
     filename="./config/ocr-fix-gift-from.csv"
     if os.path.isfile(filename):
-                with open(filename, newline='') as csvFile:
+                with open(filename, newline='', encoding='utf8') as csvFile:
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     next(csvReader)
                     for row in csvReader:
@@ -290,7 +312,7 @@ def ocrFixGiftNameLoad():
     tableOcrFixGiftName=[]
     filename="./config/ocr-fix-gift-name.csv"
     if os.path.isfile(filename):
-                with open(filename, newline='') as csvFile:
+                with open(filename, newline='', encoding='utf8') as csvFile:
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     next(csvReader)
                     for row in csvReader:
@@ -314,7 +336,7 @@ def ocrFixGiftSourceLoad():
     tableOcrFixGiftSource=[]
     filename="./config/ocr-fix-gift-source.csv"
     if os.path.isfile(filename):
-                with open(filename, newline='') as csvFile:
+                with open(filename, newline='', encoding='utf8') as csvFile:
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     next(csvReader)
                     for row in csvReader:
@@ -338,7 +360,7 @@ def giftScoreLoad():
     tableGiftScore=[]
     filename="./config/gift-score.csv"
     if os.path.isfile(filename):
-                with open(filename, newline='') as csvFile:
+                with open(filename, newline='', encoding='utf8') as csvFile:
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     next(csvReader)
                     for row in csvReader:
@@ -362,7 +384,7 @@ def playerListLoad():
     tablePlayerList=[]
     filename="./config/player-list.csv"
     if os.path.isfile(filename):
-        with open(filename, newline='') as csvFile:
+        with open(filename, newline='', encoding='utf8') as csvFile:
             csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
             next(csvReader)
             for row in csvReader:
@@ -374,7 +396,7 @@ def playerListLoad():
 def playerListSave():
     global tablePlayerList
     filename="./config/player-list.csv"
-    with open(filename, 'w', newline='') as csvFile:
+    with open(filename, 'w', newline='', encoding='utf8') as csvFile:
         csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
         csvWriter.writerow(["Player"])
         for row in tablePlayerList:
@@ -391,7 +413,7 @@ def giftIgnoreLoad():
     tableGiftIgnore=[]
     filename="./config/gift-ignore.csv"
     if os.path.isfile(filename):
-                with open(filename, newline='') as csvFile:
+                with open(filename, newline='', encoding='utf8') as csvFile:
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     next(csvReader)
                     for row in csvReader:
@@ -410,7 +432,7 @@ def giftIgnore(value):
 # ---
 
 def main(page: Page):
-    global stopProcessing,processingDone,threadStarted,screenIs4K
+    global stopProcessing,processingDone,threadStarted,useOnyEasyOCR
     page.window_width = 360
     page.window_height = 600 
     page.title = "TotalBatttle.bot"
@@ -418,11 +440,10 @@ def main(page: Page):
 
     status = Text("ready")
     stopProcessing = False
-    processingDone = False
-    screenIs4K = False
+    processingDone = False    
 
     txtNumber = TextField(value="100", text_align="right", width=100)
-    switch4K = Switch(label="Display is 4k", value=screenIs4K)
+    switchUseOnyEasyOCR = Switch(label="Use only EasyOCR", value=useOnyEasyOCR)
 
     def threadProc():
         global stopProcessing, processingDone,threadStarted
@@ -434,7 +455,7 @@ def main(page: Page):
         count = 0
         countLN = int(txtNumber.value)
         while not stopProcessing:
-            time.sleep(1)
+            time.sleep(100/1000)
             posXMouse = 0
             posYMouse = 0
             posXMouseDelta = 0
@@ -478,14 +499,13 @@ def main(page: Page):
                 continue
             while not stopProcessing:
                 status.value = "process gift ..."
-                page.update()                
+                page.update()
                 getGiftScreenshot()
                 isDeleted = False
                 if matchImageButtonDelete():
                     isDeleted = True
                 if not matchImageButtonOpen():
-                    if not isDeleted:
-                        #saveScreenshot("open-1")
+                    if not isDeleted:                        
                         status.value = "no more gifts, done"
                         page.update()
                         time.sleep(2)
@@ -496,38 +516,35 @@ def main(page: Page):
                 giftDate = dateNow.strftime("%Y-%m-%d %H:%M:%S")
                 dateDay = dateNow.strftime("%Y-%m-%d")
 
-                #saveScreenshot("gift") 
+                saveScreenshot("gift") 
                 giftFrom = getGiftFrom()
                 if giftFrom == "":
                     saveScreenshot("./errors/"+dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))
                     saveCropImage("./errors/"+dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))
                     status.value = "OCR Error - Gift From"
                     page.update()
-                    return
-            
-                saveScreenshot("./errors/"+dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))
-                saveCropImage("./errors/"+dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))                
-
-                giftName = getGiftName()                
+                    return                
+                            
+                giftName = getGiftName()
                 giftSource = getGiftSource()
                 giftContains = "unknown"
                 giftStatus = "Ok"
                 if isDeleted:
                     giftContains = getGiftContains()
                     giftStatus = "Deleted"
+
                 #print("Gift Name: "+giftName)
                 #print("Gift From: "+giftFrom)
-                #print("Gift Source: "+giftSource)                                
+                #print("Gift Source: "+giftSource)
+                    
                 fileName = "./repository/"+dateDay+"-chest-info.csv"
-                outFile = open(fileName, "a")
+                outFile = open(fileName, "a", encoding='utf8')
                 outFile.write("\""+giftDate+"\",\""+giftFrom+"\",\""+giftName+"\",\""+giftSource+"\",\""+giftContains+"\",\""+giftStatus+"\"\n")
                 outFile.close()
                 #---
                 count = count + 1
                 status.value = "["+str(count)+"/"+str(countLN)+"] "+giftFrom+", "+giftName
                 page.update()                
-                #---
-                return
                 #---
                 clickX()
                 #print("ClickX: "+str(int(posXMouse+posXMouseDelta))+" Y:"+str(int(posYMouse+posYMouseDelta)))
@@ -545,12 +562,12 @@ def main(page: Page):
         threadStarted = False
 
     def getChests(e):
-        global stopProcessing, processingDone, threadStarted,screenIs4K
+        global stopProcessing, processingDone, threadStarted,useOnyEasyOCR
         page.update()
         if threadStarted:
             page.update()
             return
-        screenIs4K=switch4K.value
+        useOnyEasyOCR = switchUseOnyEasyOCR.value        
         threadStarted = True
         stopProcessing = False
         processingDone = False
@@ -624,7 +641,7 @@ def main(page: Page):
         for day in dateList:
             filename="./repository/"+day.strftime("%Y-%m-%d")+"-chest-info.csv"
             if os.path.isfile(filename):
-                with open(filename, newline='') as csvFile:
+                with open(filename, newline='', encoding='utf8') as csvFile:
                     csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     for row in csvReader:
                         if len(row) == 0:
@@ -664,7 +681,7 @@ def main(page: Page):
 
         reportDate=datetime.now().strftime("%Y-%m-%d")
         filename="./report/"+reportDate+"-chest-info.csv"
-        with open(filename, 'w', newline='') as csvFile:
+        with open(filename, 'w', newline='', encoding='utf8') as csvFile:
                     csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     for row in giftsTableFinal:                        
                         csvWriter.writerow(row)
@@ -712,13 +729,13 @@ def main(page: Page):
         playerListSave()
 
         filename="./report/"+reportDate+"-player-stats.csv"
-        with open(filename, 'w', newline='') as csvFile:
+        with open(filename, 'w', newline='', encoding='utf8') as csvFile:
             csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
             for row in playerInfoTable:
                 csvWriter.writerow(row)
 
         filename="./report/"+reportDate+"-player-no-gifts.csv"
-        with open(filename, 'w', newline='') as csvFile:
+        with open(filename, 'w', newline='', encoding='utf8') as csvFile:
             csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
             for row in playerNoGifts:
                 csvWriter.writerow(row)
@@ -731,19 +748,7 @@ def main(page: Page):
     buttonSubmit = ElevatedButton(text="Submit", on_click=cmdButtonSubmit)
     # ---
 
-    page.add(
-        Row(
-            [
-                ElevatedButton(text="Get Chests", on_click=getChests),                
-            ],
-            alignment="center",
-        ),
-        Row(
-            [
-                ElevatedButton(text="Stop", on_click=stopProcess),
-            ],
-            alignment="center",
-        ),
+    page.add(        
         Row(
             [
                 Text("Status:"),
@@ -760,7 +765,20 @@ def main(page: Page):
         ),
         Row(
             [
-                switch4K
+                ElevatedButton(text="Get Chests", on_click=getChests),                
+            ],
+            alignment="center",
+        ),
+        Row(
+            [
+                ElevatedButton(text="Stop", on_click=stopProcess),
+            ],
+            alignment="center",
+        ),
+        Divider(),
+        Row(
+            [                
+                switchUseOnyEasyOCR
             ],
             alignment="left",
         ),
