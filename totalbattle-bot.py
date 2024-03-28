@@ -162,6 +162,11 @@ def clickAt(x,y):
 def ocr(image,x,y,lnX,lnY):
     global cropImage
     cropImage = image[y:y+lnY, x:x+lnX]
+    cropImage = cv.resize(cropImage, (cropImage.shape[1]*2, cropImage.shape[0]*2), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    normImage = np.zeros((cropImage.shape[0], cropImage.shape[1]))
+    cropImage = cv.normalize(cropImage, normImage, 0, 255, cv.NORM_MINMAX)
+    cropImage = cv.threshold(cropImage, 100, 255, cv.THRESH_BINARY)[1]
+    cropImage = cv.GaussianBlur(cropImage, (1, 1), 0)
     text = pytesseract.image_to_string(cropImage, config="--psm 12 --oem 1")
     return text
 
@@ -499,6 +504,10 @@ def main(page: Page):
                     status.value = "OCR Error - Gift From"
                     page.update()
                     return
+            
+                saveScreenshot("./errors/"+dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))
+                saveCropImage("./errors/"+dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))                
+
                 giftName = getGiftName()                
                 giftSource = getGiftSource()
                 giftContains = "unknown"
@@ -517,6 +526,8 @@ def main(page: Page):
                 count = count + 1
                 status.value = "["+str(count)+"/"+str(countLN)+"] "+giftFrom+", "+giftName
                 page.update()                
+                #---
+                return
                 #---
                 clickX()
                 #print("ClickX: "+str(int(posXMouse+posXMouseDelta))+" Y:"+str(int(posYMouse+posYMouseDelta)))
