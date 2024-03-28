@@ -86,8 +86,10 @@ def getScreenshot():
     screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
 
 def getScreenshotX(x,y,lnX,lnY):
-    global screenShotRGB,screenShotGray
-    screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot(region=(int(x),int(y),int(lnX),int(lnY)))),cv.COLOR_RGB2BGR)
+    global screenShotRGB,screenShotGray,screenShotDelta
+    screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot(region=(int(x*screenShotDelta),int(y*screenShotDelta),int(lnX*screenShotDelta),int(lnY*screenShotDelta)))),cv.COLOR_RGB2BGR)
+    if not int(screenShotDelta) == 1:
+         screenShotRGB = cv.resize(screenShotRGB, (int(screenShotRGB.shape[1]/screenShotDelta), int(screenShotRGB.shape[0]/screenShotDelta)), fx=0, fy=0, interpolation = cv.INTER_AREA)
     screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)    
 
 def matchImage(image):
@@ -500,6 +502,13 @@ def main(page: Page):
                 status.value = "process gift ..."
                 page.update()
                 getGiftScreenshot()
+
+                dateNow = datetime.now()
+                giftDate = dateNow.strftime("%Y-%m-%d %H:%M:%S")
+                dateDay = dateNow.strftime("%Y-%m-%d")
+
+                #saveScreenshot(dateNow.strftime("%Y-%m-%d_%H-%M-%S")+"-gift")
+
                 isDeleted = False
                 if matchImageButtonDelete():
                     isDeleted = True
@@ -509,13 +518,8 @@ def main(page: Page):
                         page.update()
                         time.sleep(2)
                         stopProcessing=True
-                        break
+                        break                                
                 
-                dateNow = datetime.now()
-                giftDate = dateNow.strftime("%Y-%m-%d %H:%M:%S")
-                dateDay = dateNow.strftime("%Y-%m-%d")
-
-                saveScreenshot("gift") 
                 giftFrom = getGiftFrom()
                 if giftFrom == "":
                     saveScreenshot("./errors/"+dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))
