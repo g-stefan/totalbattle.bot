@@ -24,7 +24,6 @@ import easyocr
 # ---
 ocrProcessor = easyocr.Reader(["en","de","fr"])
 useEasyOCR = False
-ocrMemory = {}
 ocrMemoryImageFrom = {}
 ocrMemoryImageName = {}
 ocrMemoryImageSource = {}
@@ -180,13 +179,8 @@ def ocrEasyOCR(processedImage):
             text += textFound + " "
     return text.strip()
 
-#
-# Using secondary OCR (EasyOCR) as an expert (takes longer that faster primary OCR (tesseract) )
-# Event faster, memorize image lines after OCR
-#
 def ocr(image,x,y,lnX,lnY,imageMemory):
-    global cropImage,ocrProcessor,useEasyOCR,ocrMemory
-    global ocrMemoryImageFrom, ocrMemoryImageName, ocrMemoryImageSource, ocrMemoryImageContains
+    global cropImage,ocrProcessor,useEasyOCR    
     cropImage = image[y:y+lnY, x:x+lnX]
 
     fastImage = cv.resize(cropImage, (int(cropImage.shape[1]/2), int(cropImage.shape[0]/2)), fx=0, fy=0, interpolation = cv.INTER_AREA)
@@ -204,25 +198,21 @@ def ocr(image,x,y,lnX,lnY,imageMemory):
     cropImage = cv.threshold(cropImage, 100, 255, cv.THRESH_BINARY)[1]
     cropImage = cv.medianBlur(cropImage, 3)
 
-    text = ""
-    if not useEasyOCR:
-        text = pytesseract.image_to_string(cropImage, config="--psm 12 --oem 1")
-        text = text.strip()
-        if not text == "":
-            if text in ocrMemory:
-                return ocrMemory[text]
-            mem = ocrEasyOCR(cropImage)
-            if not mem == "":
-                ocrMemory[text]=mem
-                imageMemory[mem]=fastImage
-                return mem
-            ocrMemory[text]=text
-            return text
-
-    if text == "":
+    if useEasyOCR:
         text = ocrEasyOCR(cropImage)
         if not text == "":
             imageMemory[text]=fastImage
+            return text
+
+    text = pytesseract.image_to_string(cropImage, config="--psm 12 --oem 1")
+    text = text.strip()
+    if not text == "":
+        imageMemory[text]=fastImage
+        return text
+
+    text = ocrEasyOCR(cropImage)
+    if not text == "":
+        imageMemory[text]=fastImage
             
     return text
 
@@ -469,7 +459,7 @@ def main(page: Page):
     processingDone = False    
 
     txtNumber = TextField(value="100", text_align="right", width=100)
-    switchuseEasyOCR = Switch(label="Use only EasyOCR", value=useEasyOCR)
+    switchUseEasyOCR = Switch(label="EasyOCR", value=useEasyOCR)
 
     def threadProc():
         global stopProcessing, processingDone,threadStarted
@@ -595,7 +585,7 @@ def main(page: Page):
         if threadStarted:
             page.update()
             return
-        useEasyOCR = switchuseEasyOCR.value        
+        useEasyOCR = switchUseEasyOCR.value        
         threadStarted = True
         stopProcessing = False
         processingDone = False
@@ -806,7 +796,7 @@ def main(page: Page):
         Divider(),
         Row(
             [                
-                switchuseEasyOCR
+                switchUseEasyOCR
             ],
             alignment="left",
         ),
