@@ -23,8 +23,12 @@ import easyocr
 
 # ---
 ocrProcessor = easyocr.Reader(["en","de","fr"])
-useOnyEasyOCR = False
+useEasyOCR = False
 ocrMemory = {}
+ocrMemoryImageFrom = {}
+ocrMemoryImageName = {}
+ocrMemoryImageSource = {}
+ocrMemoryImageContains = {}
 # ---
 buttonClanImage = cv.imread("images/button-clan.png", cv.IMREAD_GRAYSCALE)
 buttonDeleteImage = cv.imread("images/button-delete.png", cv.IMREAD_GRAYSCALE)
@@ -170,17 +174,30 @@ def clickAt(x,y):
 
 def ocrEasyOCR(processedImage):
     result = ocrProcessor.readtext(processedImage)
-    for (bbox, text, prob) in result:
+    text = ""
+    for (bbox, textFound, prob) in result:
         if prob > 0.8:
-            return text
-    return ""
+            text += textFound + " "
+    return text.strip()
 
 #
 # Using secondary OCR (EasyOCR) as an expert (takes longer that faster primary OCR (tesseract) )
+# Event faster, memorize image lines after OCR
 #
-def ocr(image,x,y,lnX,lnY):
-    global cropImage,ocrProcessor,useOnyEasyOCR,ocrMemory
+def ocr(image,x,y,lnX,lnY,imageMemory):
+    global cropImage,ocrProcessor,useEasyOCR,ocrMemory
+    global ocrMemoryImageFrom, ocrMemoryImageName, ocrMemoryImageSource, ocrMemoryImageContains
     cropImage = image[y:y+lnY, x:x+lnX]
+
+    fastImage = cv.resize(cropImage, (int(cropImage.shape[1]/2), int(cropImage.shape[0]/2)), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    #cv.imwrite(datetime.now().strftime("%Y-%m-%d_%H-%M-%S_")+"-fast.png",fastImage)
+    
+    for processed in imageMemory:
+        res = cv.matchTemplate(fastImage,imageMemory[processed],cv.TM_CCOEFF_NORMED)
+        loc = np.where( res >= 0.9)
+        for pt in zip(*loc[::-1]):
+            return processed
+        
     cropImage = cv.resize(cropImage, (cropImage.shape[1]*4, cropImage.shape[0]*4), fx=0, fy=0, interpolation = cv.INTER_AREA)
     normImage = np.zeros((cropImage.shape[0], cropImage.shape[1]))
     cropImage = cv.normalize(cropImage, normImage, 0, 255, cv.NORM_MINMAX)
@@ -188,7 +205,7 @@ def ocr(image,x,y,lnX,lnY):
     cropImage = cv.medianBlur(cropImage, 3)
 
     text = ""
-    if not useOnyEasyOCR:        
+    if not useEasyOCR:
         text = pytesseract.image_to_string(cropImage, config="--psm 12 --oem 1")
         text = text.strip()
         if not text == "":
@@ -197,39 +214,47 @@ def ocr(image,x,y,lnX,lnY):
             mem = ocrEasyOCR(cropImage)
             if not mem == "":
                 ocrMemory[text]=mem
+                imageMemory[mem]=fastImage
                 return mem
+            ocrMemory[text]=text
             return text
 
     if text == "":
         text = ocrEasyOCR(cropImage)
+        if not text == "":
+            imageMemory[text]=fastImage
             
     return text
 
 def getGiftName():
     global screenShotGray
     global giftNameRegionX,giftNameRegionY,giftNameRegionLnX,giftNameRegionLnY
-    text = ocr(screenShotGray,giftNameRegionX,giftNameRegionY,giftNameRegionLnX,giftNameRegionLnY)
+    global ocrMemoryImageName
+    text = ocr(screenShotGray,giftNameRegionX,giftNameRegionY,giftNameRegionLnX,giftNameRegionLnY,ocrMemoryImageName)
     text = text.strip()
     return text
 
 def getGiftFrom():
     global screenShotGray
     global giftFromRegionX,giftFromRegionY,giftFromRegionLnX,giftFromRegionLnY
-    text = ocr(screenShotGray,giftFromRegionX,giftFromRegionY,giftFromRegionLnX,giftFromRegionLnY)
+    global ocrMemoryImageFrom
+    text = ocr(screenShotGray,giftFromRegionX,giftFromRegionY,giftFromRegionLnX,giftFromRegionLnY,ocrMemoryImageFrom)
     text = text.strip()
     return text
 
 def getGiftSource():
     global screenShotGray
     global giftSourceRegionX,giftSourceRegionY,giftSourceRegionLnX,giftSourceRegionLnY
-    text = ocr(screenShotGray,giftSourceRegionX,giftSourceRegionY,giftSourceRegionLnX,giftSourceRegionLnY)
+    global ocrMemoryImageSource
+    text = ocr(screenShotGray,giftSourceRegionX,giftSourceRegionY,giftSourceRegionLnX,giftSourceRegionLnY,ocrMemoryImageSource)
     text = text.strip()
     return text
 
 def getGiftContains():
     global screenShotGray
     global giftContainsRegionX,giftContainsRegionY,giftContainsRegionLnX,giftContainsRegionLnY
-    text = ocr(screenShotGray,giftContainsRegionX,giftContainsRegionY,giftContainsRegionLnX,giftContainsRegionLnY)
+    global ocrMemoryImageContains
+    text = ocr(screenShotGray,giftContainsRegionX,giftContainsRegionY,giftContainsRegionLnX,giftContainsRegionLnY,ocrMemoryImageContains)
     text = text.strip()
     return text
 
@@ -433,7 +458,7 @@ def giftIgnore(value):
 # ---
 
 def main(page: Page):
-    global stopProcessing,processingDone,threadStarted,useOnyEasyOCR
+    global stopProcessing,processingDone,threadStarted,useEasyOCR
     page.window_width = 360
     page.window_height = 600 
     page.title = "TotalBatttle.bot"
@@ -444,7 +469,7 @@ def main(page: Page):
     processingDone = False    
 
     txtNumber = TextField(value="100", text_align="right", width=100)
-    switchUseOnyEasyOCR = Switch(label="Use only EasyOCR", value=useOnyEasyOCR)
+    switchuseEasyOCR = Switch(label="Use only EasyOCR", value=useEasyOCR)
 
     def threadProc():
         global stopProcessing, processingDone,threadStarted
@@ -565,12 +590,12 @@ def main(page: Page):
         threadStarted = False
 
     def getChests(e):
-        global stopProcessing, processingDone, threadStarted,useOnyEasyOCR
+        global stopProcessing, processingDone, threadStarted,useEasyOCR
         page.update()
         if threadStarted:
             page.update()
             return
-        useOnyEasyOCR = switchUseOnyEasyOCR.value        
+        useEasyOCR = switchuseEasyOCR.value        
         threadStarted = True
         stopProcessing = False
         processingDone = False
@@ -781,7 +806,7 @@ def main(page: Page):
         Divider(),
         Row(
             [                
-                switchUseOnyEasyOCR
+                switchuseEasyOCR
             ],
             alignment="left",
         ),
