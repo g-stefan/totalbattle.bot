@@ -688,7 +688,7 @@ def main(page: Page):
             giftScore = getGiftScore(giftSource)
 
             giftsTableFinal.append([line[0],giftFrom,giftName,giftSource,giftContains,line[5],giftScore])
-            if giftIgnore(giftName):
+            if giftIgnore(giftSource):
                continue
 
             if not giftFrom in playerStats:
@@ -697,9 +697,9 @@ def main(page: Page):
             playerStats[giftFrom][1]+=giftScore
             playerStats[giftFrom][2]+=1
 
-            if not giftName in giftStats:
-                giftStats[giftName]=[giftName,0]
-            giftStats[giftName][1]+=1
+            if not giftSource in giftStats:
+                giftStats[giftSource]=[giftSource,0]
+            giftStats[giftSource][1]+=1
 
         reportDate=datetime.now().strftime("%Y-%m-%d")
         filename="./report/"+reportDate+"-chest-info.csv"
