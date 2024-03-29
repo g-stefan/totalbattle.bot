@@ -17,9 +17,11 @@ import pyautogui
 import time
 from datetime import datetime, timedelta
 import csv
+import os
 import os.path
 import pytesseract
 import easyocr
+
 
 # ---
 ocrProcessor = easyocr.Reader(["en","de","fr"])
@@ -788,6 +790,12 @@ def main(page: Page):
     
     buttonSubmit = ElevatedButton(text="Submit", on_click=cmdButtonSubmit)
     # ---
+    def cmdButtonOpenFolder(e):
+        os.startfile(os.path.normpath("./report/"))
+        return
+
+    buttonOpenFolder = ElevatedButton(text="Open Folder", on_click=cmdButtonOpenFolder)
+    # ---
 
     page.add(        
         Row(
@@ -848,7 +856,8 @@ def main(page: Page):
         ),
         Row(
             [
-                buttonSubmit
+                buttonSubmit,
+                buttonOpenFolder
             ],
             alignment="left",
         )        
