@@ -738,7 +738,7 @@ def main(page: Page):
         giftsTableStats=[]
         giftsTableStats.append(["Name","Count"])
         for line in giftStatsSort:
-            giftStatsSort.append(line)
+            giftsTableStats.append(line)
         
         filename="./report/"+reportDate+"-gifts-top.csv"
         with open(filename, 'w', newline='', encoding='utf8') as csvFile:
