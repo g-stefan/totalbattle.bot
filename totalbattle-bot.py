@@ -674,7 +674,8 @@ def main(page: Page):
         playerListLoad()
         giftIgnoreLoad()
 
-        playerStats={}        
+        playerStats={}
+        giftStats={}
         giftsTableFinal=[]
         giftsTableFinal.append(["Date","Player","Name","Source","Content","Status","Score"])
         for line in giftsTable:
@@ -691,11 +692,14 @@ def main(page: Page):
                continue
 
             if not giftFrom in playerStats:
-                playerStats[giftFrom]=["",0,0,False]            
-            
+                playerStats[giftFrom]=["",0,0,False]
             playerStats[giftFrom][0]=giftFrom
             playerStats[giftFrom][1]+=giftScore
-            playerStats[giftFrom][2]+=1            
+            playerStats[giftFrom][2]+=1
+
+            if not giftName in giftStats:
+                giftStats[giftName]=[giftName,0]
+            giftStats[giftName][1]+=1
 
         reportDate=datetime.now().strftime("%Y-%m-%d")
         filename="./report/"+reportDate+"-chest-info.csv"
@@ -718,9 +722,28 @@ def main(page: Page):
              playerStatsTable.append(line)
 
         filename="./report/"+reportDate+"-player-top.csv"
-        with open(filename, 'w', newline='') as csvFile:
+        with open(filename, 'w', newline='',encoding='utf8') as csvFile:
                     csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
                     for row in playerStatsTable:
+                        csvWriter.writerow(row)
+
+
+        # ---
+        giftStatsSort = []
+        for gift in giftStats:
+            giftStatsSort.append([giftStats[gift][0],giftStats[gift][1]])
+        giftStatsSort.sort(key=sortSecond) 
+        giftStatsSort.reverse()
+
+        giftsTableStats=[]
+        giftsTableStats.append(["Name","Count"])
+        for line in giftStatsSort:
+            giftStatsSort.append(line)
+        
+        filename="./report/"+reportDate+"-gifts-top.csv"
+        with open(filename, 'w', newline='', encoding='utf8') as csvFile:
+                    csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
+                    for row in giftsTableStats:
                         csvWriter.writerow(row)
 
         # ---
