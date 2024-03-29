@@ -6,18 +6,22 @@ A TotalBattle bot to keep stats about gifts
 
 ## Configuration
 
-#### config/gift-score.csv
+#### config/gift-score.xlsx
 
 Gift Scores
 
-#### config/ocr-fix-gift-content.csv
-#### config/ocr-fix-gift-from.csv
-#### config/ocr-fix-gift-name.csv
-#### config/ocr-fix-gift-source.csv
+#### config/gift-ignore.xlsx
+
+Gift Ignore
+
+#### config/ocr-fix-gift-content.xlsx
+#### config/ocr-fix-gift-from.xlsx
+#### config/ocr-fix-gift-name.xlsx
+#### config/ocr-fix-gift-source.xlsx
 
 Fixes for ocr 
 
-#### config/player-list.csv
+#### config/player-list.xlsx
 
 Clan players, this is updated automatically on report generation
 
