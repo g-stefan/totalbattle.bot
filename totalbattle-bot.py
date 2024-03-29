@@ -295,14 +295,14 @@ def writeXLSX(table, header, filename):
     rowIndex = 0
     colIndex = 0
     for col in header:
-        worksheet.write(rowIndex, colIndex, header[col],headerFormat)
-        colIndex += 1        
+        worksheet.write(rowIndex, colIndex, col,headerFormat)
+        colIndex += 1
 
     rowIndex = 1    
     for row in (table):
         colIndex = 0
         for col in row:
-            worksheet.write(rowIndex, colIndex, row[col])
+            worksheet.write(rowIndex, colIndex, col)
             colIndex += 1
         rowIndex += 1
 
@@ -334,7 +334,7 @@ def readXLSX(filename,numCols):
         if isEmpty:
             continue
         table.append(line)
-    
+        
     return table
 # ---
 tableOcrFixGiftContent=[]
