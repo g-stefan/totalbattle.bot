@@ -295,7 +295,7 @@ def writeXLSX(table, header, filename):
     rowIndex = 0
     colIndex = 0
     for col in header:
-        worksheet.write(rowIndex, colIndex, row[col],headerFormat)
+        worksheet.write(rowIndex, colIndex, header[col],headerFormat)
         colIndex += 1        
 
     rowIndex = 1    
