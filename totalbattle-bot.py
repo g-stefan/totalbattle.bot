@@ -21,6 +21,8 @@ import os
 import os.path
 import pytesseract
 import easyocr
+import xlsxwriter
+import openpyxl
 
 
 # ---
@@ -275,20 +277,71 @@ def matchImageButtonOpen():
     return matchImage(buttonOpenImage)
 
 # ---
+def writeXLSX(table, header, filename):
+    workbook = xlsxwriter.Workbook(filename)
+
+    headerFormat = workbook.add_format(
+        {
+            "bold": True,
+            "align": "center",
+            "valign": "vcenter",            
+            "border": 1,
+        }
+    )
+
+    worksheet = workbook.add_worksheet()
+    worksheet.freeze_panes(1, 0)    
+
+    rowIndex = 0
+    colIndex = 0
+    for col in header:
+        worksheet.write(rowIndex, colIndex, row[col],headerFormat)
+        colIndex += 1        
+
+    rowIndex = 1    
+    for row in (table):
+        colIndex = 0
+        for col in row:
+            worksheet.write(rowIndex, colIndex, row[col])
+            colIndex += 1
+        rowIndex += 1
+
+    workbook.close()
+
+def readXLSX(filename,numCols):
+    table=[]
+    if not os.path.isfile(filename):
+        return  table
+
+    workbook = openpyxl.load_workbook(filename)    
+    worksheet = workbook.active
+      
+    for row in range(1, worksheet.max_row):
+        line=[]
+        for item in range(0, numCols):
+             line.append("")
+        index = 0
+        for col in worksheet.iter_cols(1, worksheet.max_column):
+            if not index < numCols:
+                 break
+            line[index]=str(col[row].value).strip()
+            index = index + 1
+        isEmpty = True
+        for item in range(0, numCols):
+            if not line[item] == "":
+                isEmpty = False
+                break
+        if isEmpty:
+            continue
+        table.append(line)
+    
+    return table
+# ---
 tableOcrFixGiftContent=[]
 
 def ocrFixGiftContentLoad():
     global tableOcrFixGiftContent
-    tableOcrFixGiftContent=[]
-    filename="./config/ocr-fix-gift-content.csv"
-    if os.path.isfile(filename):
-                with open(filename, newline='', encoding='utf8') as csvFile:
-                    csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-                    next(csvReader)
-                    for row in csvReader:
-                        if len(row) == 0:
-                            continue
-                        tableOcrFixGiftContent.append(row)
+    tableOcrFixGiftContent = readXLSX("./config/ocr-fix-gift-content.xlsx",2)
     #print(tableOcrFixGiftContent)
 
 def ocrFixGiftContent(value):
@@ -303,16 +356,7 @@ tableOcrFixGiftFrom=[]
 
 def ocrFixGiftFromLoad():
     global tableOcrFixGiftFrom
-    tableOcrFixGiftFrom=[]
-    filename="./config/ocr-fix-gift-from.csv"
-    if os.path.isfile(filename):
-                with open(filename, newline='', encoding='utf8') as csvFile:
-                    csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-                    next(csvReader)
-                    for row in csvReader:
-                        if len(row) == 0:
-                            continue
-                        tableOcrFixGiftFrom.append(row)
+    tableOcrFixGiftFrom = readXLSX("./config/ocr-fix-gift-from.xlsx",2)
     #print(tableOcrFixGiftFrom)
 
 def ocrFixGiftFrom(value):
@@ -327,16 +371,7 @@ tableOcrFixGiftName=[]
 
 def ocrFixGiftNameLoad():
     global tableOcrFixGiftName
-    tableOcrFixGiftName=[]
-    filename="./config/ocr-fix-gift-name.csv"
-    if os.path.isfile(filename):
-                with open(filename, newline='', encoding='utf8') as csvFile:
-                    csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-                    next(csvReader)
-                    for row in csvReader:
-                        if len(row) == 0:
-                            continue
-                        tableOcrFixGiftName.append(row)
+    tableOcrFixGiftName = readXLSX("./config/ocr-fix-gift-name.xlsx",2)
     #print(tableOcrFixGiftName)
 
 def ocrFixGiftName(value):
@@ -350,17 +385,8 @@ def ocrFixGiftName(value):
 tableOcrFixGiftSource=[]
 
 def ocrFixGiftSourceLoad():
-    global tableOcrFixGiftSource
-    tableOcrFixGiftSource=[]
-    filename="./config/ocr-fix-gift-source.csv"
-    if os.path.isfile(filename):
-                with open(filename, newline='', encoding='utf8') as csvFile:
-                    csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-                    next(csvReader)
-                    for row in csvReader:
-                        if len(row) == 0:
-                            continue
-                        tableOcrFixGiftSource.append(row)
+    global tableOcrFixGiftSource    
+    tableOcrFixGiftSource = readXLSX("./config/ocr-fix-gift-source.xlsx",2)
     #print(tableOcrFixGiftSource)
 
 def ocrFixGiftSource(value):
@@ -375,16 +401,7 @@ tableGiftScore=[]
 
 def giftScoreLoad():
     global tableGiftScore
-    tableGiftScore=[]
-    filename="./config/gift-score.csv"
-    if os.path.isfile(filename):
-                with open(filename, newline='', encoding='utf8') as csvFile:
-                    csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-                    next(csvReader)
-                    for row in csvReader:
-                        if len(row) == 0:
-                            continue
-                        tableGiftScore.append(row)
+    tableGiftScore = readXLSX("./config/gift-score.xlsx",2)
     #print(tableGiftScore)
 
 def getGiftScore(value):
@@ -399,27 +416,13 @@ tablePlayerList=[]
 
 def playerListLoad():
     global tablePlayerList
-    tablePlayerList=[]
-    filename="./config/player-list.csv"
-    if os.path.isfile(filename):
-        with open(filename, newline='', encoding='utf8') as csvFile:
-            csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-            next(csvReader)
-            for row in csvReader:
-                if len(row) == 0:
-                    continue
-                tablePlayerList.append(row)
+    tablePlayerList = readXLSX("./config/player-list.xlsx",1)
     #print(tablePlayerList)
                         
 def playerListSave():
     global tablePlayerList
-    filename="./config/player-list.csv"
-    with open(filename, 'w', newline='', encoding='utf8') as csvFile:
-        csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-        csvWriter.writerow(["Player"])
-        for row in tablePlayerList:
-            csvWriter.writerow(row)
-
+    writeXLSX(tablePlayerList, ["Player"], "./config/player-list.xlsx")
+    
 # ---
 def sortSecond(val):    
     return val[1]
@@ -428,16 +431,7 @@ tableGiftIgnore=[]
 
 def giftIgnoreLoad():
     global tableGiftIgnore
-    tableGiftIgnore=[]
-    filename="./config/gift-ignore.csv"
-    if os.path.isfile(filename):
-                with open(filename, newline='', encoding='utf8') as csvFile:
-                    csvReader = csv.reader(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-                    next(csvReader)
-                    for row in csvReader:
-                        if len(row) == 0:
-                            continue
-                        tableGiftIgnore.append(row)
+    tableGiftIgnore = readXLSX("./config/gift-ignore.xlsx",1)
     #print(tableGiftIgnore)
 
 def giftIgnore(value):
@@ -679,7 +673,6 @@ def main(page: Page):
         playerStats={}
         giftStats={}
         giftsTableFinal=[]
-        giftsTableFinal.append(["Date","Player","Name","Source","Content","Status","Score"])
         for line in giftsTable:
             if len(line)==0:
                 continue
@@ -703,12 +696,9 @@ def main(page: Page):
                 giftStats[giftSource]=[giftSource,0]
             giftStats[giftSource][1]+=1
 
-        reportDate=datetime.now().strftime("%Y-%m-%d")
-        filename="./report/"+reportDate+"-chest-info.csv"
-        with open(filename, 'w', newline='', encoding='utf8') as csvFile:
-                    csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-                    for row in giftsTableFinal:                        
-                        csvWriter.writerow(row)
+        reportDate=datetime.now().strftime("%Y-%m-%d")        
+        filename="./report/"+reportDate+"-chest-info.xlsx"
+        writeXLSX(giftsTableFinal, ["Date","Player","Name","Source","Content","Status","Score"], filename)
         
         # ---
         playerStatsSort = []        
@@ -718,17 +708,12 @@ def main(page: Page):
         playerStatsSort.reverse()
 
         # ---
-        playerStatsTable = []
-        playerStatsTable.append(["Player","Score","Count"])
+        playerStatsTable = []        
         for line in playerStatsSort:
              playerStatsTable.append(line)
 
-        filename="./report/"+reportDate+"-player-top.csv"
-        with open(filename, 'w', newline='',encoding='utf8') as csvFile:
-                    csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-                    for row in playerStatsTable:
-                        csvWriter.writerow(row)
-
+        filename="./report/"+reportDate+"-player-top.xlsx"
+        writeXLSX(playerStatsTable, ["Player","Score","Count"], filename)        
 
         # ---
         giftStatsSort = []
@@ -737,24 +722,18 @@ def main(page: Page):
         giftStatsSort.sort(key=sortSecond) 
         giftStatsSort.reverse()
 
-        giftsTableStats=[]
-        giftsTableStats.append(["Name","Count"])
+        giftsTableStats=[]        
         for line in giftStatsSort:
             giftsTableStats.append(line)
         
-        filename="./report/"+reportDate+"-gifts-top.csv"
-        with open(filename, 'w', newline='', encoding='utf8') as csvFile:
-                    csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-                    for row in giftsTableStats:
-                        csvWriter.writerow(row)
-
+        filename="./report/"+reportDate+"-gifts-top.xlsx"
+        writeXLSX(giftsTableStats, ["Name","Count"], filename)
+        
         # ---
         global tablePlayerList
 
-        playerInfoTable=[]
-        playerInfoTable.append(["Player","Score","Count"])
-        playerNoGifts=[]
-        playerNoGifts.append(["Player"])
+        playerInfoTable=[]        
+        playerNoGifts=[]        
         for line in tablePlayerList:
             player = line[0]
             if player in playerStats:
@@ -771,18 +750,12 @@ def main(page: Page):
 
         playerListSave()
 
-        filename="./report/"+reportDate+"-player-stats.csv"
-        with open(filename, 'w', newline='', encoding='utf8') as csvFile:
-            csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-            for row in playerInfoTable:
-                csvWriter.writerow(row)
-
-        filename="./report/"+reportDate+"-player-no-gifts.csv"
-        with open(filename, 'w', newline='', encoding='utf8') as csvFile:
-            csvWriter = csv.writer(csvFile, delimiter=',', quotechar='\"',quoting=csv.QUOTE_ALL)
-            for row in playerNoGifts:
-                csvWriter.writerow(row)
-
+        filename="./report/"+reportDate+"-player-stats.xlsx"
+        writeXLSX(playerInfoTable, ["Player","Score","Count"], filename)
+        
+        filename="./report/"+reportDate+"-player-no-gifts.xlsx"
+        writeXLSX(playerNoGifts, ["Player"], filename)
+        
         e.control.page.snack_bar = SnackBar(Text("Report done!"))
         e.control.page.snack_bar.open = True
         e.control.page.update()
