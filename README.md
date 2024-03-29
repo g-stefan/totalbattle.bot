@@ -40,6 +40,8 @@ python -m pip install pytesseract
 python -m pip install opencv-python
 python -m pip install pyautogui
 python -m pip install easyocr
+python -m pip install xlsxwriter
+python -m pip install openpyxl
 ```
 
 Full tesseract-ocr
