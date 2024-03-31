@@ -33,16 +33,23 @@ ocrMemoryImageName = {}
 ocrMemoryImageSource = {}
 ocrMemoryImageContains = {}
 # ---
-buttonClanImage = cv.imread("images/button-clan.png", cv.IMREAD_GRAYSCALE)
 buttonDeleteImage = cv.imread("images/button-delete.png", cv.IMREAD_GRAYSCALE)
 buttonGiftsActiveImage = cv.imread("images/button-gifts-active.png", cv.IMREAD_GRAYSCALE)
-buttonGiftsInactiveImage = cv.imread("images/button-gifts-inactive.png", cv.IMREAD_GRAYSCALE)
 buttonOpenImage = cv.imread("images/button-open.png", cv.IMREAD_GRAYSCALE)
 windowClanTitleImage = cv.imread("images/window-clan-title.png", cv.IMREAD_GRAYSCALE)
 
+buttonDeleteImageX1 = None
+buttonDeleteImageX2 = None
+buttonGiftsActiveImageX1 = None
+buttonGiftsActiveImageX2 = None
+buttonOpenImageX1 = None
+buttonOpenImageX2 = None
+windowClanTitleImageX1 = None
+windowClanTitleImageX2 = None
 # ---
 screenShotRGB = None
 screenShotGray = None
+screenShotCanny = None
 cropImage = None
 screenShotDelta = 1
 # ---
@@ -83,7 +90,7 @@ stopProcessing=False
 processingDone=False
 
 def getScreenshot():
-    global screenShotRGB,screenShotGray,screenShotDelta
+    global screenShotRGB,screenShotGray,screenShotDelta,screenShotCanny
     screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot()),cv.COLOR_RGB2BGR)    
     lnX = screenShotRGB.shape[1]
     screenShotDelta = lnX/1920
@@ -91,13 +98,15 @@ def getScreenshot():
     if not lnX == 1920:
         screenShotRGB = cv.resize(screenShotRGB, (1920, int(resizeY)), fx=0, fy=0, interpolation = cv.INTER_AREA)
     screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
+    screenShotCanny=cv.Canny(screenShotGray,50,200)
 
 def getScreenshotX(x,y,lnX,lnY):
-    global screenShotRGB,screenShotGray,screenShotDelta
+    global screenShotRGB,screenShotGray,screenShotDelta,screenShotCanny
     screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot(region=(int(x*screenShotDelta),int(y*screenShotDelta),int(lnX*screenShotDelta),int(lnY*screenShotDelta)))),cv.COLOR_RGB2BGR)
     if not int(screenShotDelta) == 1:
          screenShotRGB = cv.resize(screenShotRGB, (int(screenShotRGB.shape[1]/screenShotDelta), int(screenShotRGB.shape[0]/screenShotDelta)), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)    
+    screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
+    screenShotCanny=cv.Canny(screenShotGray,50,200)
 
 def matchImage(image):
     global screenShotGray,screenShotRGB,topX,topY,posXMouse,posYMouse
@@ -253,28 +262,44 @@ def getGiftContains():
     return text
 
 def matchImageWindowClanTitle():    
-    global windowClanTitleImage
-    return matchImage(windowClanTitleImage)
-
-def matchImageButtonClan():    
-    global buttonClanImage
-    return matchImage(buttonClanImage)
+    global windowClanTitleImage,windowClanTitleImageX1,windowClanTitleImageX2
+    if matchImage(windowClanTitleImage):
+        return True
+    if matchImage(windowClanTitleImageX1):
+        return True
+    if matchImage(windowClanTitleImageX2):
+        return True
+    return False
 
 def matchImageButtonGiftsActive():    
-    global buttonGiftsActiveImage
-    return matchImage(buttonGiftsActiveImage)
+    global buttonGiftsActiveImage,buttonGiftsActiveImageX1,buttonGiftsActiveImageX2
+    if matchImage(buttonGiftsActiveImage):
+        return True
+    if matchImage(buttonGiftsActiveImageX1):
+        return True
+    if matchImage(buttonGiftsActiveImageX2):
+        return True
+    return False
     
-def matchImageButtonGiftsInactive():    
-    global buttonGiftsInactiveImage
-    return matchImage(buttonGiftsInactiveImage)
-
 def matchImageButtonDelete():    
-    global buttonDeleteImage    
-    return matchImage(buttonDeleteImage)
+    global buttonDeleteImage,buttonDeleteImageX1,buttonDeleteImageX2
+    if matchImage(buttonDeleteImage):
+        return True
+    if matchImage(buttonDeleteImageX1):
+        return True
+    if matchImage(buttonDeleteImageX2):
+        return True
+    return False
 
 def matchImageButtonOpen():    
-    global buttonOpenImage    
-    return matchImage(buttonOpenImage)
+    global buttonOpenImage,buttonOpenImageX1,buttonOpenImageX2
+    if matchImage(buttonOpenImage):
+        return True
+    if matchImage(buttonOpenImageX1):
+        return True
+    if matchImage(buttonOpenImageX2):
+        return True
+    return False
 
 # ---
 def writeXLSX(table, header, filename):
@@ -442,6 +467,43 @@ def giftIgnore(value):
     return False
 
 # ---
+def initProcessing():
+    global buttonDeleteImage
+    global buttonGiftsActiveImage
+    global buttonOpenImage
+    global windowClanTitleImage
+    global buttonDeleteImageX1
+    global buttonDeleteImageX2
+    global buttonGiftsActiveImageX1
+    global buttonGiftsActiveImageX2
+    global buttonOpenImageX1
+    global buttonOpenImageX2
+    global windowClanTitleImageX1
+    global windowClanTitleImageX2
+
+    buttonDeleteImageX1 = cv.resize(buttonDeleteImage, (buttonDeleteImage.shape[1]+2, buttonDeleteImage.shape[0]), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    buttonDeleteImageX2 = cv.resize(buttonDeleteImage, (buttonDeleteImage.shape[1], buttonDeleteImage.shape[0]+2), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    buttonGiftsActiveImageX1  = cv.resize(buttonGiftsActiveImage, (buttonGiftsActiveImage.shape[1]+2, buttonGiftsActiveImage.shape[0]), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    buttonGiftsActiveImageX2  = cv.resize(buttonGiftsActiveImage, (buttonGiftsActiveImage.shape[1], buttonGiftsActiveImage.shape[0]+2), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    buttonOpenImageX1 = cv.resize(buttonOpenImage, (buttonOpenImage.shape[1]+2, buttonOpenImage.shape[0]), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    buttonOpenImageX2 = cv.resize(buttonOpenImage, (buttonOpenImage.shape[1], buttonOpenImage.shape[0]+2), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    windowClanTitleImageX1 = cv.resize(windowClanTitleImage, (windowClanTitleImage.shape[1]+2, windowClanTitleImage.shape[0]), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    windowClanTitleImageX2 = cv.resize(windowClanTitleImage, (windowClanTitleImage.shape[1], windowClanTitleImage.shape[0]+2), fx=0, fy=0, interpolation = cv.INTER_AREA)
+
+    buttonDeleteImage=cv.Canny(buttonDeleteImage,50,200)
+    buttonDeleteImageX1=cv.Canny(buttonDeleteImageX1,50,200)
+    buttonDeleteImageX2=cv.Canny(buttonDeleteImageX2,50,200)
+    buttonGiftsActiveImage=cv.Canny(buttonGiftsActiveImage,50,200)
+    buttonGiftsActiveImageX1=cv.Canny(buttonGiftsActiveImageX1,50,200)
+    buttonGiftsActiveImageX2=cv.Canny(buttonGiftsActiveImageX2,50,200)
+    buttonOpenImage=cv.Canny(buttonOpenImage,50,200)
+    buttonOpenImageX1=cv.Canny(buttonOpenImageX1,50,200)
+    buttonOpenImageX2=cv.Canny(buttonOpenImageX2,50,200)
+    windowClanTitleImage=cv.Canny(windowClanTitleImage,50,200)
+    windowClanTitleImageX1=cv.Canny(windowClanTitleImageX1,50,200)
+    windowClanTitleImageX2=cv.Canny(windowClanTitleImageX2,50,200)
+
+# ---
 
 def main(page: Page):
     global stopProcessing,processingDone,threadStarted,useEasyOCR
@@ -463,7 +525,7 @@ def main(page: Page):
         threadStarted = True
         status.value = "starting up ..."        
         page.update()
-        time.sleep(1)
+        initProcessing()
         count = 0
         countLN = int(txtNumber.value)
         while not stopProcessing:
@@ -474,41 +536,15 @@ def main(page: Page):
             posYMouseDelta = 0
             getScreenshot()            
             #saveScreenshot("main")
-            if not matchImageWindowClanTitle():
-                #saveScreenshot("no-wnd-clan")
-                status.value = "no clan window found"
-                time.sleep(3)                
-                if not matchImageButtonClan():
-                    #saveScreenshot("no-clan-btn")
-                    status.value = "no clan button found"
-                    page.update()
-                    stopProcessing = True
-                    processingDone = True                
-                    threadStarted = False
-                    return
-                status.value = "click clan button"
+            if not matchImageWindowClanTitle():                
+                status.value = "no gifts window found"
                 page.update()
-                clickX()                
-                time.sleep(1)
-                pyautogui.move(50, 50, 0.5)
-                time.sleep(1)
-                continue
+                return
             saveGiftsCaptureRegion()            
             if not matchImageButtonGiftsActive():
-                if not matchImageButtonGiftsInactive():
-                    status.value = "no gifts button found"
-                    page.update()
-                    stopProcessing = True
-                    processingDone = True                
-                    threadStarted = False
-                    return
-                status.value = "click gifts button"
+                status.value = "no gifts button found"
                 page.update()               
-                clickX()
-                time.sleep(1)
-                pyautogui.move(50, 50, 0.5)
-                time.sleep(1)
-                continue
+                return
             while not stopProcessing:
                 status.value = "process gift ..."
                 page.update()
