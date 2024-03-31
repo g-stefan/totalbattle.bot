@@ -109,9 +109,9 @@ def getScreenshotX(x,y,lnX,lnY):
     screenShotCanny=cv.Canny(screenShotGray,50,200)
 
 def matchImage(image):
-    global screenShotGray,screenShotRGB,topX,topY,posXMouse,posYMouse
+    global screenShotCanny,screenShotGray,screenShotRGB,topX,topY,posXMouse,posYMouse
     w, h = image.shape[::-1]
-    res = cv.matchTemplate(screenShotGray,image,cv.TM_CCOEFF_NORMED)
+    res = cv.matchTemplate(screenShotCanny,image,cv.TM_CCOEFF_NORMED)
     loc = np.where( res >= 0.8)    
     found = False
     for pt in zip(*loc[::-1]):        
