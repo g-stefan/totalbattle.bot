@@ -539,12 +539,14 @@ def main(page: Page):
             if not matchImageWindowClanTitle():                
                 status.value = "no gifts window found"
                 page.update()
-                return
+                time.sleep(2)
+                break
             saveGiftsCaptureRegion()            
             if not matchImageButtonGiftsActive():
                 status.value = "no gifts button found"
-                page.update()               
-                return
+                page.update()
+                time.sleep(2)               
+                break
             while not stopProcessing:
                 status.value = "process gift ..."
                 page.update()
