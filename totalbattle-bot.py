@@ -27,7 +27,7 @@ import openpyxl
 
 # ---
 ocrProcessor = easyocr.Reader(["en","de","fr"])
-useEasyOCR = False
+useEasyOCR = True
 ocrMemoryImageFrom = {}
 ocrMemoryImageName = {}
 ocrMemoryImageSource = {}
@@ -49,9 +49,9 @@ windowClanTitleImageX2 = None
 # ---
 screenShotRGB = None
 screenShotGray = None
-screenShotCanny = None
 cropImage = None
 screenShotDelta = 1
+screenShotZoom = 1
 # ---
 topX=0
 topY=0
@@ -90,28 +90,26 @@ stopProcessing=False
 processingDone=False
 
 def getScreenshot():
-    global screenShotRGB,screenShotGray,screenShotDelta,screenShotCanny
-    screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot()),cv.COLOR_RGB2BGR)    
+    global screenShotRGB,screenShotGray,screenShotDelta,screenShotZoom
+    screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot()),cv.COLOR_RGB2BGR)
     lnX = screenShotRGB.shape[1]
-    screenShotDelta = lnX/1920
-    resizeY = (screenShotRGB.shape[0]*1920)/lnX
-    if not lnX == 1920:
-        screenShotRGB = cv.resize(screenShotRGB, (1920, int(resizeY)), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
-    screenShotCanny=cv.Canny(screenShotGray,50,200)
+    screenLnX = 1920/screenShotZoom
+    screenShotDelta = lnX/screenLnX
+    resizeY = (screenShotRGB.shape[0]*screenLnX)/lnX
+    screenShotRGB = cv.resize(screenShotRGB, (int(screenLnX), int(resizeY)), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)    
 
 def getScreenshotX(x,y,lnX,lnY):
-    global screenShotRGB,screenShotGray,screenShotDelta,screenShotCanny
+    global screenShotRGB,screenShotGray,screenShotDelta
     screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot(region=(int(x*screenShotDelta),int(y*screenShotDelta),int(lnX*screenShotDelta),int(lnY*screenShotDelta)))),cv.COLOR_RGB2BGR)
     if not int(screenShotDelta) == 1:
          screenShotRGB = cv.resize(screenShotRGB, (int(screenShotRGB.shape[1]/screenShotDelta), int(screenShotRGB.shape[0]/screenShotDelta)), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
-    screenShotCanny=cv.Canny(screenShotGray,50,200)
+    screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)    
 
 def matchImage(image):
-    global screenShotCanny,screenShotGray,screenShotRGB,topX,topY,posXMouse,posYMouse
+    global screenShotGray,screenShotRGB,topX,topY,posXMouse,posYMouse
     w, h = image.shape[::-1]
-    res = cv.matchTemplate(screenShotCanny,image,cv.TM_CCOEFF_NORMED)
+    res = cv.matchTemplate(screenShotGray,image,cv.TM_CCOEFF_NORMED)
     loc = np.where( res >= 0.8)    
     found = False
     for pt in zip(*loc[::-1]):        
@@ -168,7 +166,7 @@ def getGiftScreenshot():
 
 def saveScreenshot(info):
     global screenShotRGB
-    cv.imwrite(info+"-screenshot.png",screenShotRGB)
+    cv.imwrite(info+"-screenshot.png",screenShotRGB)    
 
 def saveCropImage(info):
     global cropImage
@@ -490,19 +488,6 @@ def initProcessing():
     windowClanTitleImageX1 = cv.resize(windowClanTitleImage, (windowClanTitleImage.shape[1]+2, windowClanTitleImage.shape[0]), fx=0, fy=0, interpolation = cv.INTER_AREA)
     windowClanTitleImageX2 = cv.resize(windowClanTitleImage, (windowClanTitleImage.shape[1], windowClanTitleImage.shape[0]+2), fx=0, fy=0, interpolation = cv.INTER_AREA)
 
-    buttonDeleteImage=cv.Canny(buttonDeleteImage,50,200)
-    buttonDeleteImageX1=cv.Canny(buttonDeleteImageX1,50,200)
-    buttonDeleteImageX2=cv.Canny(buttonDeleteImageX2,50,200)
-    buttonGiftsActiveImage=cv.Canny(buttonGiftsActiveImage,50,200)
-    buttonGiftsActiveImageX1=cv.Canny(buttonGiftsActiveImageX1,50,200)
-    buttonGiftsActiveImageX2=cv.Canny(buttonGiftsActiveImageX2,50,200)
-    buttonOpenImage=cv.Canny(buttonOpenImage,50,200)
-    buttonOpenImageX1=cv.Canny(buttonOpenImageX1,50,200)
-    buttonOpenImageX2=cv.Canny(buttonOpenImageX2,50,200)
-    windowClanTitleImage=cv.Canny(windowClanTitleImage,50,200)
-    windowClanTitleImageX1=cv.Canny(windowClanTitleImageX1,50,200)
-    windowClanTitleImageX2=cv.Canny(windowClanTitleImageX2,50,200)
-
 # ---
 
 def main(page: Page):
@@ -516,16 +501,17 @@ def main(page: Page):
     stopProcessing = False
     processingDone = False    
 
-    txtNumber = TextField(value="100", text_align="right", width=100)
+    txtNumber = TextField(value="1000", text_align="right", width=100)
     switchUseEasyOCR = Switch(label="EasyOCR", value=useEasyOCR)
 
     def threadProc():
-        global stopProcessing, processingDone,threadStarted
+        global stopProcessing, processingDone,threadStarted,screenShotZoom
         global posXMouse,posYMouse,posXMouseDelta,posYMouseDelta
         threadStarted = True
         status.value = "starting up ..."        
         page.update()
         initProcessing()
+        screenShotZoom = 1
         count = 0
         countLN = int(txtNumber.value)
         while not stopProcessing:
@@ -534,12 +520,15 @@ def main(page: Page):
             posYMouse = 0
             posXMouseDelta = 0
             posYMouseDelta = 0
-            getScreenshot()            
-            #saveScreenshot("main")
-            if not matchImageWindowClanTitle():                
+            getScreenshot()
+            #saveScreenshot(datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+"-main-"+str(screenShotZoom))
+            if not matchImageWindowClanTitle():
+                screenShotZoom = screenShotZoom + 0.125
+                if screenShotZoom <= 4:
+                    continue
                 status.value = "no gifts window found"
                 page.update()
-                time.sleep(2)
+                time.sleep(2)                
                 break
             saveGiftsCaptureRegion()            
             if not matchImageButtonGiftsActive():
@@ -556,7 +545,7 @@ def main(page: Page):
                 giftDate = dateNow.strftime("%Y-%m-%d %H:%M:%S")
                 dateDay = dateNow.strftime("%Y-%m-%d")
 
-                #saveScreenshot(dateNow.strftime("%Y-%m-%d_%H-%M-%S")+"-gift")
+                #saveScreenshot(datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+"-gift")
 
                 isDeleted = False
                 if matchImageButtonDelete():
