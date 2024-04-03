@@ -493,7 +493,7 @@ def main(page: Page):
     global stopProcessing,processingDone,threadStarted,useEasyOCR
     page.window_width = 360
     page.window_height = 600 
-    page.title = "TotalBatttle.bot"
+    page.title = "TotalBattle.bot"
     page.vertical_alignment = "top"    
 
     status = Text("ready")
