@@ -46,7 +46,9 @@ windowClanTitleImageX = []
 # ---
 screenShotRGB = None
 screenShotGray = None
+screenShotGrayOriginal = None
 cropImage = None
+cropImageOriginal = None
 screenShotZoom = 1
 screenShotZoomList = []
 screenShotZoomIndex = 0
@@ -96,8 +98,9 @@ def getScreenshot():
     screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
 
 def getScreenshotX(x,y,lnX,lnY):
-    global screenShotRGB,screenShotGray,screenShotZoom
+    global screenShotRGB,screenShotGray,screenShotZoom,screenShotGrayOriginal
     screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot(region=(int(x*screenShotZoom),int(y*screenShotZoom),int(lnX*screenShotZoom),int(lnY*screenShotZoom)))),cv.COLOR_RGB2BGR)
+    screenShotGrayOriginal = cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
     screenShotRGB = cv.resize(screenShotRGB, (int(screenShotRGB.shape[1]/screenShotZoom), int(screenShotRGB.shape[0]/screenShotZoom)), fx=0, fy=0, interpolation = cv.INTER_AREA)
     screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
 
@@ -185,24 +188,28 @@ def ocrEasyOCR(processedImage):
             text += textFound + " "
     return text.strip()
 
-def ocr(image,x,y,lnX,lnY,imageMemory):
-    global cropImage,ocrProcessor,useEasyOCR    
+def ocr(image,x,y,lnX,lnY,imageMemory,imageOriginal):
+    global cropImage,ocrProcessor,useEasyOCR,cropImageOriginal,screenShotZoom
     cropImage = image[y:y+lnY, x:x+lnX]
+    cropImageOriginal = imageOriginal[int(y*screenShotZoom):int((y+lnY)*screenShotZoom), int(x*screenShotZoom):int((x+lnX)*screenShotZoom)]
 
-    fastImage = cv.resize(cropImage, (int(cropImage.shape[1]/2), int(cropImage.shape[0]/2)), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    #fastImage = cv.resize(cropImage, (int(cropImage.shape[1]/2), int(cropImage.shape[0]/2)), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    fastImage = cv.resize(cropImage, (int(cropImage.shape[1]), int(cropImage.shape[0])), fx=0, fy=0, interpolation = cv.INTER_AREA)
     #cv.imwrite(datetime.now().strftime("%Y-%m-%d_%H-%M-%S_")+"-fast.png",fastImage)
     
     for processed in imageMemory:
         res = cv.matchTemplate(fastImage,imageMemory[processed],cv.TM_CCOEFF_NORMED)
-        loc = np.where( res >= 0.9)
+        loc = np.where( res >= 0.99)
         for pt in zip(*loc[::-1]):
             return processed
         
-    cropImage = cv.resize(cropImage, (cropImage.shape[1]*4, cropImage.shape[0]*4), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    cropImage = cv.resize(cropImageOriginal, (cropImage.shape[1]*4, cropImage.shape[0]*4), fx=0, fy=0, interpolation = cv.INTER_AREA)
     normImage = np.zeros((cropImage.shape[0], cropImage.shape[1]))
     cropImage = cv.normalize(cropImage, normImage, 0, 255, cv.NORM_MINMAX)
     cropImage = cv.threshold(cropImage, 100, 255, cv.THRESH_BINARY)[1]
     cropImage = cv.medianBlur(cropImage, 3)
+
+    #saveCropImage("./errors/"+datetime.now().strftime("%Y-%m-%d_%H-%M-%S_"))
 
     if useEasyOCR:
         text = ocrEasyOCR(cropImage)
@@ -223,34 +230,34 @@ def ocr(image,x,y,lnX,lnY,imageMemory):
     return text
 
 def getGiftName():
-    global screenShotGray
+    global screenShotGray,screenShotGrayOriginal
     global giftNameRegionX,giftNameRegionY,giftNameRegionLnX,giftNameRegionLnY
     global ocrMemoryImageName
-    text = ocr(screenShotGray,giftNameRegionX,giftNameRegionY,giftNameRegionLnX,giftNameRegionLnY,ocrMemoryImageName)
+    text = ocr(screenShotGray,giftNameRegionX,giftNameRegionY,giftNameRegionLnX,giftNameRegionLnY,ocrMemoryImageName,screenShotGrayOriginal)
     text = text.strip()
     return text
 
 def getGiftFrom():
-    global screenShotGray
+    global screenShotGray,screenShotGrayOriginal
     global giftFromRegionX,giftFromRegionY,giftFromRegionLnX,giftFromRegionLnY
     global ocrMemoryImageFrom
-    text = ocr(screenShotGray,giftFromRegionX,giftFromRegionY,giftFromRegionLnX,giftFromRegionLnY,ocrMemoryImageFrom)
+    text = ocr(screenShotGray,giftFromRegionX,giftFromRegionY,giftFromRegionLnX,giftFromRegionLnY,ocrMemoryImageFrom,screenShotGrayOriginal)
     text = text.strip()
     return text
 
 def getGiftSource():
-    global screenShotGray
+    global screenShotGray,screenShotGrayOriginal
     global giftSourceRegionX,giftSourceRegionY,giftSourceRegionLnX,giftSourceRegionLnY
     global ocrMemoryImageSource
-    text = ocr(screenShotGray,giftSourceRegionX,giftSourceRegionY,giftSourceRegionLnX,giftSourceRegionLnY,ocrMemoryImageSource)
+    text = ocr(screenShotGray,giftSourceRegionX,giftSourceRegionY,giftSourceRegionLnX,giftSourceRegionLnY,ocrMemoryImageSource,screenShotGrayOriginal)
     text = text.strip()
     return text
 
 def getGiftContains():
-    global screenShotGray
+    global screenShotGray,screenShotGrayOriginal
     global giftContainsRegionX,giftContainsRegionY,giftContainsRegionLnX,giftContainsRegionLnY
     global ocrMemoryImageContains
-    text = ocr(screenShotGray,giftContainsRegionX,giftContainsRegionY,giftContainsRegionLnX,giftContainsRegionLnY,ocrMemoryImageContains)
+    text = ocr(screenShotGray,giftContainsRegionX,giftContainsRegionY,giftContainsRegionLnX,giftContainsRegionLnY,ocrMemoryImageContains,screenShotGrayOriginal)
     text = text.strip()
     return text
 
