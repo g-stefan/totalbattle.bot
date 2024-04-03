@@ -583,7 +583,7 @@ def main(page: Page):
                 outFile.close()
                 #---
                 count = count + 1
-                status.value = "["+str(count)+"/"+str(countLN)+"] "+giftFrom+", "+giftName
+                status.value = "["+str(count)+"/"+str(countLN)+"] "+giftFrom+", "+giftSource
                 page.update()                
                 #---
                 clickX()
@@ -696,6 +696,19 @@ def main(page: Page):
         playerListLoad()
         giftIgnoreLoad()
 
+        # ---
+        #fix players
+        global tablePlayerList
+        playerNames={}
+        for line in tablePlayerList:
+            player = ocrFixGiftFrom(line[0])
+            playerNames[player]=1
+
+        tablePlayerList = []
+        for player in playerNames:
+            tablePlayerList.append([player])
+        # ---
+
         playerStats={}
         giftStats={}
         giftsTableFinal=[]
@@ -755,8 +768,7 @@ def main(page: Page):
         filename="./report/"+reportDate+"-gifts-top.xlsx"
         writeXLSX(giftsTableStats, ["Name","Count"], filename)
         
-        # ---
-        global tablePlayerList
+        # ---        
 
         playerInfoTable=[]        
         playerNoGifts=[]        
