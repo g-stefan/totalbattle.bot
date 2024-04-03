@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 #
-# Version 1.2.0 2024-04-03
+# Version 1.3.0 2024-04-04
 #
 
 import flet
