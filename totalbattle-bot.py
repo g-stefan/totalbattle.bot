@@ -732,7 +732,7 @@ def main(page: Page):
             playerStats[giftFrom][2]+=1
 
             if not giftSource in giftStats:
-                giftStats[giftSource]=[giftSource,0]
+                giftStats[giftSource]=[giftSource,0,giftScore]
             giftStats[giftSource][1]+=1
 
         reportDate=datetime.now().strftime("%Y-%m-%d")        
@@ -757,16 +757,16 @@ def main(page: Page):
         # ---
         giftStatsSort = []
         for gift in giftStats:
-            giftStatsSort.append([giftStats[gift][0],giftStats[gift][1]])
+            giftStatsSort.append([giftStats[gift][0],giftStats[gift][1],giftStats[gift][2]])
         giftStatsSort.sort(key=sortSecond) 
         giftStatsSort.reverse()
 
-        giftsTableStats=[]        
+        giftsTableStats=[]
         for line in giftStatsSort:
             giftsTableStats.append(line)
         
         filename="./report/"+reportDate+"-gifts-top.xlsx"
-        writeXLSX(giftsTableStats, ["Name","Count"], filename)
+        writeXLSX(giftsTableStats, ["Name","Count","Score"], filename)
         
         # ---        
 
