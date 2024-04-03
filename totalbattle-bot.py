@@ -27,7 +27,7 @@ import openpyxl
 
 # ---
 ocrProcessor = easyocr.Reader(["en","de","fr"])
-useEasyOCR = True
+useEasyOCR = False
 ocrMemoryImageFrom = {}
 ocrMemoryImageName = {}
 ocrMemoryImageSource = {}
@@ -38,20 +38,18 @@ buttonGiftsActiveImage = cv.imread("images/button-gifts-active.png", cv.IMREAD_G
 buttonOpenImage = cv.imread("images/button-open.png", cv.IMREAD_GRAYSCALE)
 windowClanTitleImage = cv.imread("images/window-clan-title.png", cv.IMREAD_GRAYSCALE)
 
-buttonDeleteImageX1 = None
-buttonDeleteImageX2 = None
-buttonGiftsActiveImageX1 = None
-buttonGiftsActiveImageX2 = None
-buttonOpenImageX1 = None
-buttonOpenImageX2 = None
-windowClanTitleImageX1 = None
-windowClanTitleImageX2 = None
+buttonDeleteImageX = []
+buttonGiftsActiveImageX = []
+buttonOpenImageX = []
+windowClanTitleImageX = []
+
 # ---
 screenShotRGB = None
 screenShotGray = None
 cropImage = None
-screenShotDelta = 1
 screenShotZoom = 1
+screenShotZoomList = []
+screenShotZoomIndex = 0
 # ---
 topX=0
 topY=0
@@ -90,21 +88,18 @@ stopProcessing=False
 processingDone=False
 
 def getScreenshot():
-    global screenShotRGB,screenShotGray,screenShotDelta,screenShotZoom
+    global screenShotRGB,screenShotGray,screenShotZoom
     screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot()),cv.COLOR_RGB2BGR)
-    lnX = screenShotRGB.shape[1]
-    screenLnX = 1920/screenShotZoom
-    screenShotDelta = lnX/screenLnX
-    resizeY = (screenShotRGB.shape[0]*screenLnX)/lnX
-    screenShotRGB = cv.resize(screenShotRGB, (int(screenLnX), int(resizeY)), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)    
+    newLnX = screenShotRGB.shape[1]/screenShotZoom
+    newLnY = screenShotRGB.shape[0]/screenShotZoom    
+    screenShotRGB = cv.resize(screenShotRGB, (int(newLnX), int(newLnY)), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
 
 def getScreenshotX(x,y,lnX,lnY):
-    global screenShotRGB,screenShotGray,screenShotDelta
-    screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot(region=(int(x*screenShotDelta),int(y*screenShotDelta),int(lnX*screenShotDelta),int(lnY*screenShotDelta)))),cv.COLOR_RGB2BGR)
-    if not int(screenShotDelta) == 1:
-         screenShotRGB = cv.resize(screenShotRGB, (int(screenShotRGB.shape[1]/screenShotDelta), int(screenShotRGB.shape[0]/screenShotDelta)), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)    
+    global screenShotRGB,screenShotGray,screenShotZoom
+    screenShotRGB=cv.cvtColor(np.array(pyautogui.screenshot(region=(int(x*screenShotZoom),int(y*screenShotZoom),int(lnX*screenShotZoom),int(lnY*screenShotZoom)))),cv.COLOR_RGB2BGR)
+    screenShotRGB = cv.resize(screenShotRGB, (int(screenShotRGB.shape[1]/screenShotZoom), int(screenShotRGB.shape[0]/screenShotZoom)), fx=0, fy=0, interpolation = cv.INTER_AREA)
+    screenShotGray=cv.cvtColor(screenShotRGB,cv.COLOR_RGB2GRAY)
 
 def matchImage(image):
     global screenShotGray,screenShotRGB,topX,topY,posXMouse,posYMouse
@@ -173,13 +168,13 @@ def saveCropImage(info):
     cv.imwrite(info+"-crop.png",cropImage)
 
 def clickX():
-    global posXMouse,posYMouse,posXMouseDelta,posYMouseDelta,screenShotDelta
-    pyautogui.moveTo(int((posXMouse+posXMouseDelta)*screenShotDelta),int((posYMouse+posYMouseDelta)*screenShotDelta),0.2)
-    pyautogui.click(int((posXMouse+posXMouseDelta)*screenShotDelta),int((posYMouse+posYMouseDelta)*screenShotDelta))
+    global posXMouse,posYMouse,posXMouseDelta,posYMouseDelta,screenShotZoom
+    pyautogui.moveTo(int((posXMouse+posXMouseDelta)*screenShotZoom),int((posYMouse+posYMouseDelta)*screenShotZoom),0.2)
+    pyautogui.click(int((posXMouse+posXMouseDelta)*screenShotZoom),int((posYMouse+posYMouseDelta)*screenShotZoom))
 
 def clickAt(x,y):
-    global screenShotDelta
-    pyautogui.moveTo(int((posXMouse+posXMouseDelta)*screenShotDelta),int((posYMouse+posYMouseDelta)*screenShotDelta),0.2)
+    global screenShotZoom
+    pyautogui.moveTo(int((posXMouse+posXMouseDelta)*screenShotZoom),int((posYMouse+posYMouseDelta)*screenShotZoom),0.2)
     pyautogui.click(int(x),int(y))
 
 def ocrEasyOCR(processedImage):
@@ -260,43 +255,31 @@ def getGiftContains():
     return text
 
 def matchImageWindowClanTitle():    
-    global windowClanTitleImage,windowClanTitleImageX1,windowClanTitleImageX2
-    if matchImage(windowClanTitleImage):
-        return True
-    if matchImage(windowClanTitleImageX1):
-        return True
-    if matchImage(windowClanTitleImageX2):
-        return True
+    global windowClanTitleImageX
+    for image in windowClanTitleImageX:
+        if matchImage(image):
+            return True
     return False
 
 def matchImageButtonGiftsActive():    
-    global buttonGiftsActiveImage,buttonGiftsActiveImageX1,buttonGiftsActiveImageX2
-    if matchImage(buttonGiftsActiveImage):
-        return True
-    if matchImage(buttonGiftsActiveImageX1):
-        return True
-    if matchImage(buttonGiftsActiveImageX2):
-        return True
+    global buttonGiftsActiveImageX
+    for image in buttonGiftsActiveImageX:
+        if matchImage(image):
+            return True
     return False
     
-def matchImageButtonDelete():    
-    global buttonDeleteImage,buttonDeleteImageX1,buttonDeleteImageX2
-    if matchImage(buttonDeleteImage):
-        return True
-    if matchImage(buttonDeleteImageX1):
-        return True
-    if matchImage(buttonDeleteImageX2):
-        return True
+def matchImageButtonDelete():
+    global buttonDeleteImageX
+    for image in buttonDeleteImageX:
+        if matchImage(image):
+            return True
     return False
 
-def matchImageButtonOpen():    
-    global buttonOpenImage,buttonOpenImageX1,buttonOpenImageX2
-    if matchImage(buttonOpenImage):
-        return True
-    if matchImage(buttonOpenImageX1):
-        return True
-    if matchImage(buttonOpenImageX2):
-        return True
+def matchImageButtonOpen():
+    global buttonOpenImageX
+    for image in buttonOpenImageX:
+        if matchImage(image):
+            return True
     return False
 
 # ---
@@ -465,29 +448,38 @@ def giftIgnore(value):
     return False
 
 # ---
+def prepareMatch(matchImage):
+    matchList = []
+    matchList.append(matchImage)
+    matchList.append(cv.resize(matchImage, (matchImage.shape[1]+1, matchImage.shape[0]), fx=0, fy=0, interpolation = cv.INTER_AREA))
+    matchList.append(cv.resize(matchImage, (matchImage.shape[1]+2, matchImage.shape[0]), fx=0, fy=0, interpolation = cv.INTER_AREA))    
+    matchList.append(cv.resize(matchImage, (matchImage.shape[1], matchImage.shape[0]+1), fx=0, fy=0, interpolation = cv.INTER_AREA))
+    matchList.append(cv.resize(matchImage, (matchImage.shape[1], matchImage.shape[0]+2), fx=0, fy=0, interpolation = cv.INTER_AREA))    
+    matchList.append(cv.resize(matchImage, (matchImage.shape[1]+1, matchImage.shape[0]+1), fx=0, fy=0, interpolation = cv.INTER_AREA))
+    matchList.append(cv.resize(matchImage, (matchImage.shape[1]+2, matchImage.shape[0]+2), fx=0, fy=0, interpolation = cv.INTER_AREA))    
+    return matchList
+
 def initProcessing():
     global buttonDeleteImage
     global buttonGiftsActiveImage
     global buttonOpenImage
     global windowClanTitleImage
-    global buttonDeleteImageX1
-    global buttonDeleteImageX2
-    global buttonGiftsActiveImageX1
-    global buttonGiftsActiveImageX2
-    global buttonOpenImageX1
-    global buttonOpenImageX2
-    global windowClanTitleImageX1
-    global windowClanTitleImageX2
+    global buttonDeleteImageX
+    global buttonGiftsActiveImageX
+    global buttonOpenImageX
+    global windowClanTitleImageX
+    global screenShotZoomList,screenShotZoomIndex
+    
+    buttonDeleteImageX=prepareMatch(buttonDeleteImage)
+    buttonGiftsActiveImageX=prepareMatch(buttonGiftsActiveImage)
+    buttonOpenImageX=prepareMatch(buttonOpenImage)
+    windowClanTitleImageX=prepareMatch(windowClanTitleImage)
 
-    buttonDeleteImageX1 = cv.resize(buttonDeleteImage, (buttonDeleteImage.shape[1]+2, buttonDeleteImage.shape[0]), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    buttonDeleteImageX2 = cv.resize(buttonDeleteImage, (buttonDeleteImage.shape[1], buttonDeleteImage.shape[0]+2), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    buttonGiftsActiveImageX1  = cv.resize(buttonGiftsActiveImage, (buttonGiftsActiveImage.shape[1]+2, buttonGiftsActiveImage.shape[0]), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    buttonGiftsActiveImageX2  = cv.resize(buttonGiftsActiveImage, (buttonGiftsActiveImage.shape[1], buttonGiftsActiveImage.shape[0]+2), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    buttonOpenImageX1 = cv.resize(buttonOpenImage, (buttonOpenImage.shape[1]+2, buttonOpenImage.shape[0]), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    buttonOpenImageX2 = cv.resize(buttonOpenImage, (buttonOpenImage.shape[1], buttonOpenImage.shape[0]+2), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    windowClanTitleImageX1 = cv.resize(windowClanTitleImage, (windowClanTitleImage.shape[1]+2, windowClanTitleImage.shape[0]), fx=0, fy=0, interpolation = cv.INTER_AREA)
-    windowClanTitleImageX2 = cv.resize(windowClanTitleImage, (windowClanTitleImage.shape[1], windowClanTitleImage.shape[0]+2), fx=0, fy=0, interpolation = cv.INTER_AREA)
-
+    screenShotZoomList = []
+    screenShotZoomIndex = 0
+    screenShotZoomList.append(1)
+    screenShotZoomList.append(1.33334)
+    screenShotZoomList.append(2)
 # ---
 
 def main(page: Page):
@@ -505,7 +497,8 @@ def main(page: Page):
     switchUseEasyOCR = Switch(label="EasyOCR", value=useEasyOCR)
 
     def threadProc():
-        global stopProcessing, processingDone,threadStarted,screenShotZoom
+        global stopProcessing, processingDone,threadStarted
+        global screenShotZoom,screenShotZoomList,screenShotZoomIndex
         global posXMouse,posYMouse,posXMouseDelta,posYMouseDelta
         threadStarted = True
         status.value = "starting up ..."        
@@ -523,8 +516,11 @@ def main(page: Page):
             getScreenshot()
             #saveScreenshot(datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+"-main-"+str(screenShotZoom))
             if not matchImageWindowClanTitle():
-                screenShotZoom = screenShotZoom + 0.125
-                if screenShotZoom <= 4:
+                screenShotZoomIndex = screenShotZoomIndex + 1
+                if screenShotZoomIndex < len(screenShotZoomList):
+                    screenShotZoom = screenShotZoomList[screenShotZoomIndex]
+                    status.value = "search gifts window "+str(screenShotZoom)
+                    page.update()
                     continue
                 status.value = "no gifts window found"
                 page.update()
@@ -564,6 +560,9 @@ def main(page: Page):
                     saveCropImage("./errors/"+dateNow.strftime("%Y-%m-%d_%H-%M-%S_"))
                     status.value = "OCR Error - Gift From"
                     page.update()
+                    stopProcessing = True
+                    processingDone = True                
+                    threadStarted = False
                     return                
                             
                 giftName = getGiftName()
