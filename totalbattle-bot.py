@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 #
-# Version 1.3.0 2024-04-04
+# Version 1.4.0 2024-04-08
 #
 
 import flet
@@ -455,6 +455,21 @@ def giftIgnore(value):
     return False
 
 # ---
+tablePlayerIgnore=[]
+
+def playerIgnoreLoad():
+    global tablePlayerIgnore
+    tablePlayerIgnore = readXLSX("./config/player-ignore.xlsx",1)
+    #print(tablePlayerIgnore)
+
+def playerIgnore(value):
+    global tablePlayerIgnore
+    for item in tablePlayerIgnore:
+        if item[0].lower() == value.lower():
+            return True
+    return False
+
+# ---
 def prepareMatch(matchImage):
     matchList = []
     matchList.append(matchImage)
@@ -702,6 +717,7 @@ def main(page: Page):
         giftScoreLoad()
         playerListLoad()
         giftIgnoreLoad()
+        playerIgnoreLoad()
 
         # ---
         #fix players
@@ -709,11 +725,13 @@ def main(page: Page):
         playerNames={}
         for line in tablePlayerList:
             player = ocrFixGiftFrom(line[0])
-            playerNames[player]=1
+            if not playerIgnore(player):
+                playerNames[player]=1
 
         tablePlayerList = []
         for player in playerNames:
-            tablePlayerList.append([player])
+            if not playerIgnore(player):
+                tablePlayerList.append([player])
         # ---
 
         playerStats={}
@@ -730,7 +748,9 @@ def main(page: Page):
 
             giftsTableFinal.append([line[0],giftFrom,giftName,giftSource,giftContains,line[5],giftScore])
             if giftIgnore(giftSource):
-               continue
+                continue
+            if playerIgnore(giftFrom):
+                continue
 
             if not giftFrom in playerStats:
                 playerStats[giftFrom]=["",0,0,False]
@@ -741,8 +761,10 @@ def main(page: Page):
             if not giftSource in giftStats:
                 giftStats[giftSource]=[giftSource,0,giftScore]
             giftStats[giftSource][1]+=1
-
-        reportDate=datetime.now().strftime("%Y-%m-%d")        
+                
+        reportDate=strDateStart+"_"+strDateEnd+"_"
+        if strDateStart == strDateEnd:
+            reportDate=strDateStart
         filename="./report/"+reportDate+"-chest-info.xlsx"
         writeXLSX(giftsTableFinal, ["Date","Player","Name","Source","Content","Status","Score"], filename)
         

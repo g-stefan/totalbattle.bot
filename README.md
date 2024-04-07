@@ -12,7 +12,11 @@ Gift Scores
 
 #### config/gift-ignore.xlsx
 
-Gift Ignore
+Gift Ignore in reports
+
+#### config/player-ignore.xlsx
+
+Player Ignore in reports
 
 #### config/ocr-fix-gift-content.xlsx
 #### config/ocr-fix-gift-from.xlsx
