@@ -5,7 +5,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 #
-# Version 1.4.0 2024-04-08
+# Version 1.7.0 2024-05-13
 #
 
 import flet
@@ -303,13 +303,13 @@ def writeXLSX(table, header, filename):
     )
 
     worksheet = workbook.add_worksheet()
-    worksheet.freeze_panes(1, 0)    
+    worksheet.freeze_panes(1, 0)
 
     rowIndex = 0
     colIndex = 0
     for col in header:
         worksheet.write(rowIndex, colIndex, col,headerFormat)
-        colIndex += 1
+        colIndex += 1    
 
     rowIndex = 1    
     for row in (table):
@@ -319,6 +319,8 @@ def writeXLSX(table, header, filename):
             colIndex += 1
         rowIndex += 1
 
+    worksheet.autofilter(0, 0, rowIndex, colIndex - 1)
+    worksheet.autofit()
     workbook.close()
 
 def readXLSX(filename,numCols):
@@ -465,6 +467,34 @@ def playerIgnoreLoad():
 def playerIgnore(value):
     global tablePlayerIgnore
     for item in tablePlayerIgnore:
+        if item[0].lower() == value.lower():
+            return True
+    return False
+
+# ---
+tableGiftReport=[]
+
+def giftReportLoad():
+    global tableGiftReport
+    tableGiftReport = readXLSX("./config/gift-report.xlsx",2)
+    #print(tableGiftReport)
+
+def hasGiftReport(value):
+    global tableGiftReport
+    for item in tableGiftReport:
+        if item[0].lower() == value.lower():
+            return True
+    return False
+
+def getGiftReport(value):
+    global tableGiftReport
+    for item in tableGiftReport:     
+        if item[0].lower() == value.lower():
+            return item[1].lower().strip()
+    return ""
+
+def tableHasItem(table, value):
+    for item in table:
         if item[0].lower() == value.lower():
             return True
     return False
@@ -718,6 +748,7 @@ def main(page: Page):
         playerListLoad()
         giftIgnoreLoad()
         playerIgnoreLoad()
+        giftReportLoad()
 
         # ---
         #fix players
@@ -734,9 +765,10 @@ def main(page: Page):
                 tablePlayerList.append([player])
         # ---
 
-        playerStats={}
+        playerStats={}	
         giftStats={}
         giftsTableFinal=[]
+        giftsReports = {}
         for line in giftsTable:
             if len(line)==0:
                 continue
@@ -747,7 +779,21 @@ def main(page: Page):
             giftScore = getGiftScore(giftSource)
 
             giftsTableFinal.append([line[0],giftFrom,giftName,giftSource,giftContains,line[5],giftScore])
-            if giftIgnore(giftSource):
+
+            if not giftFrom in playerNames:
+                if not playerIgnore(giftFrom):
+                    playerNames[giftFrom]=1
+                    tablePlayerList.append([giftFrom])
+
+            if hasGiftReport(giftSource):                
+                reportName = getGiftReport(giftSource)
+                player=giftFrom.lower()
+                if not reportName in giftsReports:
+                    giftsReports[reportName] = {}
+                if not player in giftsReports[reportName]:
+                    giftsReports[reportName][player] = 0
+                giftsReports[reportName][player] += 1
+            if giftIgnore(giftSource):		
                 continue
             if playerIgnore(giftFrom):
                 continue
@@ -776,7 +822,7 @@ def main(page: Page):
         playerStatsSort.reverse()
 
         # ---
-        playerStatsTable = []        
+        playerStatsTable = []
         for line in playerStatsSort:
              playerStatsTable.append(line)
 
@@ -823,12 +869,23 @@ def main(page: Page):
         filename="./report/"+reportDate+"-player-no-gifts.xlsx"
         writeXLSX(playerNoGifts, ["Player"], filename)
         
+        for report in giftsReports:
+            reportTable = []
+            for line in tablePlayerList:
+                player = line[0].lower()
+                if player in giftsReports[report]:
+                    reportTable.append([line[0], giftsReports[report][player]])
+                else:
+                    reportTable.append([line[0], 0])                    
+            filename="./report/"+reportDate+"-"+report+".xlsx"
+            writeXLSX(reportTable, ["Player","Count"], filename)
+        
         e.control.page.snack_bar = SnackBar(Text("Report done!"))
         e.control.page.snack_bar.open = True
         e.control.page.update()
         return
     
-    buttonSubmit = ElevatedButton(text="Submit", on_click=cmdButtonSubmit)
+    buttonSubmit = ElevatedButton(text="Generate", on_click=cmdButtonSubmit)
     # ---
     def cmdButtonOpenFolder(e):
         os.startfile(os.path.normpath("./report/"))
