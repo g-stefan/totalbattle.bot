@@ -62,3 +62,6 @@ Licensed under the [Apache License 2.0](LICENSE) license.
 
 ## Disclaimer
 * This software is not affiliated or endorsed by TotalBattle
+
+## Commercial software with more advanced options
+[Total Battle Assistant](https://total-battle-assistant.com/)
